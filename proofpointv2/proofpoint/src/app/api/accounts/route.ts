@@ -15,6 +15,8 @@ export async function GET(req: NextRequest) {
   const search = url.searchParams.get("search");
   const sortBy = url.searchParams.get("sortBy") || "company_name";
   const sortDir = url.searchParams.get("sortDir") === "desc" ? false : true;
+  const contractEndBefore = url.searchParams.get("contract_end_before");
+  const contractEndAfter = url.searchParams.get("contract_end_after");
 
   try {
     const supabase = getSupabaseAdmin();
@@ -31,6 +33,8 @@ export async function GET(req: NextRequest) {
     if (healthMin) query = query.gte("health_score", parseInt(healthMin));
     if (healthMax) query = query.lte("health_score", parseInt(healthMax));
     if (search) query = query.ilike("company_name", `%${search}%`);
+    if (contractEndBefore) query = query.lte("contract_end", contractEndBefore);
+    if (contractEndAfter) query = query.gte("contract_end", contractEndAfter);
 
     query = query.order(sortBy, { ascending: sortDir });
 
