@@ -73,6 +73,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [taskSummary, setTaskSummary] = useState<TaskSummary>({ overdue: 0, dueToday: 0, thisWeek: 0 });
   const [dashAlerts, setDashAlerts] = useState<DashboardAlert[]>([]);
+  const [systemStatus, setSystemStatus] = useState<{ status: string; database: string; anthropic: string } | null>(null);
 
   useEffect(() => {
     fetch("/api/reports")
@@ -108,6 +109,12 @@ export default function DashboardPage() {
         setTaskSummary({ overdue, dueToday, thisWeek });
       })
       .catch(() => {});
+
+    // Fetch system status
+    fetch("/api/health")
+      .then((r) => r.json())
+      .then((data) => setSystemStatus(data))
+      .catch(() => setSystemStatus({ status: "error", database: "error", anthropic: "missing" }));
 
     // Fetch alerts for dashboard
     fetch("/api/alerts?unread=true&limit=5")
@@ -321,6 +328,42 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
+
+          {/* System Status */}
+          {systemStatus && (
+            <div style={{
+              marginTop: 48,
+              padding: "12px 16px",
+              borderTop: "1px solid #1e293b",
+              display: "flex",
+              alignItems: "center",
+              gap: 16,
+              fontSize: 12,
+              color: "#475569",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{
+                  width: 8, height: 8, borderRadius: "50%",
+                  background: systemStatus.status === "ok" ? "#10b981" : "#f59e0b",
+                }} />
+                System {systemStatus.status === "ok" ? "Operational" : "Degraded"}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{
+                  width: 6, height: 6, borderRadius: "50%",
+                  background: systemStatus.database === "connected" ? "#10b981" : "#ef4444",
+                }} />
+                Database
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{
+                  width: 6, height: 6, borderRadius: "50%",
+                  background: systemStatus.anthropic === "configured" ? "#10b981" : "#f59e0b",
+                }} />
+                AI
+              </div>
+            </div>
+          )}
 
         </div>
       </PageWrapper>
