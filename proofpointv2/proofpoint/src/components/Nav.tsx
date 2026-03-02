@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/accounts", label: "Portfolio" },
   { href: "/tools/generator", label: "Report Generator" },
   { href: "/tools/next-action", label: "Next Action" },
   { href: "/tools/roi-calculator", label: "ROI Calculator" },
