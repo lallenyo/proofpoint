@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
+import { checkAiQuota, incrementAiUsage, getAiModel } from "@/lib/gate";
 
 // ── In-memory rate limiter (50 requests per hour per user) ──────
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -41,9 +42,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Rate limit check
-  const { allowed, remaining, resetIn } = checkRateLimit(userId);
-  if (!allowed) {
+  // Rate limit check (per-hour safety net)
+  const { allowed: rateLimitAllowed, remaining, resetIn } = checkRateLimit(userId);
+  if (!rateLimitAllowed) {
     const resetMinutes = Math.ceil(resetIn / 60000);
     return NextResponse.json(
       {
@@ -61,6 +62,21 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Check AI quota (tier-based monthly limit)
+  const quota = await checkAiQuota(userId);
+  if (!quota.allowed) {
+    return NextResponse.json(
+      {
+        error: "AI action limit reached",
+        message: `You've used ${quota.used} of ${quota.limit} AI actions this billing period.`,
+        used: quota.used,
+        limit: quota.limit,
+        upgradeUrl: "/pricing",
+      },
+      { status: 429 }
+    );
+  }
+
   // Parse body
   let body: { system?: string; messages?: Array<{ role: string; content: string }>; max_tokens?: number };
   try {
@@ -69,7 +85,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { system, messages, max_tokens = 1500 } = body;
+  const { system, messages } = body;
 
   // Input validation
   if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -86,6 +102,10 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Get tier-appropriate model and token limit
+  const { model, maxTokens: tierMaxTokens } = await getAiModel(userId);
+  const max_tokens = Math.min(body.max_tokens || tierMaxTokens, tierMaxTokens);
+
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -95,7 +115,7 @@ export async function POST(req: NextRequest) {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model,
         max_tokens,
         ...(system ? { system } : {}),
         messages,
@@ -106,7 +126,6 @@ export async function POST(req: NextRequest) {
       const err = await response.json().catch(() => ({}));
       console.error("Anthropic API error:", response.status, err);
 
-      // Map Anthropic status codes to appropriate responses
       if (response.status === 429) {
         return NextResponse.json(
           { error: "AI service is temporarily overloaded. Please try again in a moment." },
@@ -127,10 +146,17 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await response.json();
+
+    // Increment usage after successful call
+    await incrementAiUsage(userId);
+
     return NextResponse.json(data, {
       headers: {
         "X-RateLimit-Limit": String(RATE_LIMIT),
         "X-RateLimit-Remaining": String(remaining),
+        "X-AI-Actions-Used": String(quota.used + 1),
+        "X-AI-Actions-Limit": String(quota.limit),
+        "X-AI-Model": model,
       },
     });
   } catch (err) {
