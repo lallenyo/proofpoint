@@ -125,11 +125,11 @@ export default function LandingPage() {
                   Start Free Trial
                 </button>
               </SignUpButton>
-              <a href="#waitlist">
+              <Link href="/demo">
                 <button style={{ background: "transparent", color: "#94a3b8", border: "1px solid #1e293b", padding: "16px 36px", borderRadius: 12, fontSize: 16, fontWeight: 600, cursor: "pointer" }}>
-                  Join Waitlist
+                  See Demo
                 </button>
-              </a>
+              </Link>
             </>
           )}
         </div>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Nav, PageWrapper } from "@/components/Nav";
+import UpgradePrompt from "@/components/UpgradePrompt";
 
 type Report = {
   id: string;
@@ -35,6 +36,8 @@ export default function ReportPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   useEffect(() => {
     fetch(`/api/reports/${id}`)
@@ -56,6 +59,32 @@ export default function ReportPage() {
 
   const handleCopy = () => {
     if (report) navigator.clipboard.writeText(report.generated_report);
+  };
+
+  const handleExportPdf = async () => {
+    setExporting(true);
+    setShowUpgrade(false);
+    try {
+      const res = await fetch(`/api/reports/${id}/pdf`);
+      if (res.status === 403) {
+        setShowUpgrade(true);
+        return;
+      }
+      if (!res.ok) throw new Error("PDF generation failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${report?.company_name || "report"}_report.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("PDF export error:", err);
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -82,6 +111,13 @@ export default function ReportPage() {
                   </div>
                   <div style={{ display: "flex", gap: 10 }}>
                     <button
+                      onClick={handleExportPdf}
+                      disabled={exporting}
+                      style={{ background: "#10b981", color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: exporting ? 0.6 : 1 }}
+                    >
+                      {exporting ? "Exporting…" : "Export PDF"}
+                    </button>
+                    <button
                       onClick={handleCopy}
                       style={{ background: "transparent", color: "#94a3b8", border: "1px solid #1e293b", padding: "8px 16px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}
                     >
@@ -97,6 +133,14 @@ export default function ReportPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Upgrade prompt for PDF export */}
+              {showUpgrade && (
+                <UpgradePrompt
+                  feature="PDF Export"
+                  reason="PDF export is available on Growth tier and above. Upgrade to download beautifully formatted PDF reports."
+                />
+              )}
 
               {/* Report content */}
               <div style={{ background: "#0a1628", border: "1px solid #1e293b", borderRadius: 16, padding: "36px 40px" }}>

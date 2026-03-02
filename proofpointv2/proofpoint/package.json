@@ -10,6 +10,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.3",
     "@clerk/nextjs": "^5.1.6",
+    "@react-pdf/renderer": "^4.3.2",
     "@stripe/stripe-js": "^8.8.0",
     "@supabase/supabase-js": "^2.43.4",
     "lucide-react": "^0.395.0",
