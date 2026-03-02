@@ -1,11 +1,18 @@
 import { auth } from "@clerk/nextjs/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { NextRequest, NextResponse } from "next/server";
+import { tasksLimiter } from "@/lib/rate-limit";
+import { createTaskSchema } from "@/lib/validations";
 
 // ── GET: list tasks with filters ─────────────────────────────────────
 export async function GET(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const rl = tasksLimiter.check(userId);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429, headers: tasksLimiter.headers(rl) });
+  }
 
   try {
     const url = req.nextUrl;
@@ -63,26 +70,32 @@ export async function POST(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const rl = tasksLimiter.check(userId);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429, headers: tasksLimiter.headers(rl) });
+  }
+
   try {
     const body = await req.json();
 
-    if (!body.title || typeof body.title !== "string" || !body.title.trim()) {
-      return NextResponse.json({ error: "title is required" }, { status: 400 });
+    // Zod validation
+    const parsed = createTaskSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      );
     }
-
-    const validPriorities = ["urgent", "high", "medium", "low"];
-    const validStatuses = ["pending", "in_progress", "completed", "skipped"];
-    const validSources = ["manual", "playbook", "ai-suggestion", "health-alert"];
 
     const insert: Record<string, unknown> = {
       user_id: userId,
-      title: body.title.trim(),
-      description: body.description || null,
-      priority: validPriorities.includes(body.priority) ? body.priority : "medium",
-      status: validStatuses.includes(body.status) ? body.status : "pending",
-      due_date: body.due_date || null,
-      source: validSources.includes(body.source) ? body.source : "manual",
-      account_id: body.account_id || null,
+      title: parsed.data.title.trim(),
+      description: parsed.data.description || null,
+      priority: parsed.data.priority || "medium",
+      status: parsed.data.status || "pending",
+      due_date: parsed.data.due_date || null,
+      source: parsed.data.source || "manual",
+      account_id: parsed.data.account_id || null,
     };
 
     if (insert.status === "completed") {

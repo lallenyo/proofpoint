@@ -1,11 +1,17 @@
 import { auth } from "@clerk/nextjs/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { NextRequest, NextResponse } from "next/server";
+import { alertsLimiter } from "@/lib/rate-limit";
 
 // ── GET: list alerts ─────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const rl = alertsLimiter.check(userId);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429, headers: alertsLimiter.headers(rl) });
+  }
 
   try {
     const url = req.nextUrl;

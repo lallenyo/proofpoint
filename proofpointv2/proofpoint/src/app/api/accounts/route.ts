@@ -1,11 +1,22 @@
 import { auth } from "@clerk/nextjs/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { NextRequest, NextResponse } from "next/server";
+import { accountsLimiter } from "@/lib/rate-limit";
+import { createAccountSchema } from "@/lib/validations";
 
 // ── GET: list all accounts for current user ──────────────────
 export async function GET(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // Rate limit check
+  const rl = accountsLimiter.check(userId);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Rate limit exceeded" },
+      { status: 429, headers: accountsLimiter.headers(rl) }
+    );
+  }
 
   const url = new URL(req.url);
   const stage = url.searchParams.get("stage");
@@ -52,25 +63,37 @@ export async function POST(req: NextRequest) {
   const { userId, orgId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  // Rate limit check
+  const rl = accountsLimiter.check(userId);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Rate limit exceeded" },
+      { status: 429, headers: accountsLimiter.headers(rl) }
+    );
+  }
+
   try {
     const body = await req.json();
+
+    // Validate input with Zod
+    const parsed = createAccountSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      );
+    }
+
     const {
       company_name,
-      domain,
       industry,
       lifecycle_stage,
       mrr,
       contract_start,
       contract_end,
-      nps_score,
       hubspot_company_id,
-      notes,
-      custom_fields,
-    } = body;
-
-    if (!company_name) {
-      return NextResponse.json({ error: "company_name is required" }, { status: 400 });
-    }
+    } = parsed.data;
+    const { domain, nps_score, notes, custom_fields } = body;
 
     const supabase = getSupabaseAdmin();
     const { data, error } = await supabase
