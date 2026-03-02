@@ -9793,31 +9793,30 @@ function AnomalyAlertsPanel({ accounts }) {
   return (
     <div style={{ animation: "panelIn 0.3s ease" }}>
       <FeatureExplainer
-        icon="🔔"
-        title="Smart Alerts"
-        color={T.warning}
-        description="AI-powered anomaly detection that surfaces critical account signals before they become problems. Smart Alerts continuously monitors engagement patterns, usage metrics, and sentiment indicators to identify at-risk accounts."
+        icon="🔔" title="Smart Alerts" color={T.warning}
         bullets={[
-          "Automatic anomaly detection across all account health signals",
-          "Severity-based prioritization — critical, warning, and opportunity alerts",
-          "One-click dismiss with configurable re-alert thresholds"
+          "AI-powered anomaly detection that surfaces critical account signals before they become problems, monitoring engagement patterns, usage metrics, and sentiment indicators.",
+          "Severity-based prioritization — critical, warning, and opportunity alerts ranked by potential revenue impact.",
+          "One-click dismiss with configurable re-alert thresholds and suggested remediation actions."
         ]}
         workflow={[
-          { step: "Monitor", desc: "Continuously analyze account engagement, usage, and sentiment data" },
-          { step: "Detect", desc: "AI identifies statistically significant anomalies and pattern breaks" },
-          { step: "Prioritize", desc: "Alerts are ranked by severity and potential revenue impact" },
-          { step: "Act", desc: "One-click actions to address each alert with suggested remediation" }
+          "Activities are continuously monitored for anomalies across engagement, usage, and sentiment",
+          "AI detects statistically significant pattern breaks and flags them by severity",
+          "Alerts are ranked by potential revenue impact and delivered in real time",
+          "One-click actions let you address each alert with suggested remediation steps",
         ]}
+        outputLabel="Alert Types"
         outputItems={[
-          "Real-time alert feed with severity classification",
-          "Anomaly detail cards with historical context and suggested actions",
-          "Critical account risk notifications with escalation paths",
-          "Weekly anomaly summary with trend analysis"
+          { icon: "🔔", text: "Real-time alert feed with severity classification" },
+          { icon: "📊", text: "Anomaly detail cards with historical context" },
+          { icon: "🚨", text: "Critical risk notifications with escalation paths" },
+          { icon: "📅", text: "Weekly anomaly summary with trend analysis" },
         ]}
+        audienceLabel="Who It's For"
         audience={[
-          "CSMs who need early warning on at-risk accounts",
-          "CS leaders monitoring portfolio-wide risk signals",
-          "Operations teams building proactive intervention workflows"
+          { icon: "👤", text: "CSMs needing early warning on at-risk accounts" },
+          { icon: "📈", text: "CS leaders monitoring portfolio-wide risk signals" },
+          { icon: "⚙️", text: "Ops teams building proactive intervention workflows" },
         ]}
       />
       {/* Summary cards */}
@@ -9935,31 +9934,30 @@ function Customer360Panel({ accounts }) {
   return (
     <div style={{ animation: "panelIn 0.3s ease" }}>
       <FeatureExplainer
-        icon="🌐"
-        title="Customer 360"
-        color={T.info}
-        description="A unified, real-time view of every customer account combining health metrics, revenue data, engagement history, and relationship context. Customer 360 eliminates the need to switch between tools by bringing all account intelligence into one comprehensive dashboard."
+        icon="🌐" title="Customer 360" color={T.info}
         bullets={[
-          "Unified account view with health, revenue, engagement, and relationship data",
-          "Interactive account selector with quick search across your entire portfolio",
-          "Activity timeline showing every touchpoint and milestone"
+          "A unified, real-time view of every customer account combining health metrics, revenue data, engagement history, and relationship context — eliminating the need to switch between tools.",
+          "Interactive account selector with quick search across your entire portfolio to load full profiles instantly.",
+          "Activity timeline showing every touchpoint and milestone with stakeholder mapping and risk indicators."
         ]}
         workflow={[
-          { step: "Select", desc: "Choose an account from the searchable sidebar to load its full profile" },
-          { step: "Assess", desc: "Review health scores, NPS, risk level, and churn probability at a glance" },
-          { step: "Analyze", desc: "Dive into revenue metrics, engagement patterns, and stakeholder details" },
-          { step: "Act", desc: "Use insights to plan next steps, escalate risks, or identify expansion opportunities" }
+          "Select an account from the searchable sidebar to load its full profile",
+          "Review health scores, NPS, risk level, and churn probability at a glance",
+          "Dive into revenue metrics, engagement patterns, and stakeholder details",
+          "Use insights to plan next steps, escalate risks, or identify expansion opportunities",
         ]}
+        outputLabel="Account Intel"
         outputItems={[
-          "Account health dashboard with risk indicators and trend data",
-          "Revenue breakdown including MRR, ARR, expansion, and lifetime value",
-          "Engagement timeline with all recent touchpoints and activities",
-          "Stakeholder map with contact details and relationship strength"
+          { icon: "💚", text: "Health dashboard with risk indicators and trends" },
+          { icon: "💰", text: "Revenue breakdown — MRR, ARR, expansion, LTV" },
+          { icon: "📊", text: "Engagement timeline with all touchpoints" },
+          { icon: "👥", text: "Stakeholder map with contact details" },
         ]}
+        audienceLabel="Who It's For"
         audience={[
-          "CSMs preparing for account reviews or QBRs",
-          "CS leaders needing quick account context for escalations",
-          "Account executives identifying upsell and expansion opportunities"
+          { icon: "👤", text: "CSMs preparing for account reviews or QBRs" },
+          { icon: "🔥", text: "CS leaders needing quick context for escalations" },
+          { icon: "💼", text: "AEs identifying upsell and expansion opportunities" },
         ]}
       />
       <div style={{ display: "flex", gap: 16 }}>
@@ -10075,31 +10073,30 @@ function AdminPanel() {
   return (
     <div style={{ animation: "panelIn 0.3s ease" }}>
       <FeatureExplainer
-        icon="⚙️"
-        title="Admin Dashboard"
-        color={T.muted}
-        description="Central command center for managing your Proofpoint instance. Monitor waitlist signups, manage users, track platform usage analytics, and configure integrations — all from one administrative hub."
+        icon="⚙️" title="Admin Dashboard" color={T.muted}
         bullets={[
-          "Real-time waitlist tracking with signup source attribution",
-          "User management with role-based access controls",
-          "Platform usage analytics and adoption metrics"
+          "Central command center for managing your Proofpoint instance — monitor waitlist signups, manage users, and track platform usage analytics from one hub.",
+          "Real-time waitlist tracking with signup source attribution and weekly trend analysis.",
+          "User management with role-based access controls and platform adoption metrics."
         ]}
         workflow={[
-          { step: "Monitor", desc: "Track new signups, weekly trends, and top acquisition sources" },
-          { step: "Manage", desc: "Review user accounts, approve access, and assign roles" },
-          { step: "Analyze", desc: "View platform usage patterns and feature adoption rates" },
-          { step: "Export", desc: "Download waitlist and user data as CSV for external analysis" }
+          "Track new signups, weekly trends, and top acquisition sources in real time",
+          "Review user accounts, approve access, and assign roles from the users tab",
+          "View platform usage patterns and feature adoption rates on the usage tab",
+          "Export waitlist and user data as CSV for external analysis and reporting",
         ]}
+        outputLabel="Admin Views"
         outputItems={[
-          "Signup analytics with daily, weekly, and source breakdowns",
-          "User management table with search, filter, and role assignment",
-          "Usage dashboard showing active sessions and feature engagement",
-          "CSV export of waitlist and user data for reporting"
+          { icon: "✉️", text: "Signup analytics with source breakdowns" },
+          { icon: "👥", text: "User management with search and roles" },
+          { icon: "📊", text: "Usage dashboard with session tracking" },
+          { icon: "📥", text: "CSV export for waitlist and user data" },
         ]}
+        audienceLabel="Who It's For"
         audience={[
-          "Platform administrators managing user access and configuration",
-          "Growth teams tracking signup funnels and acquisition sources",
-          "CS operations monitoring platform adoption and engagement"
+          { icon: "⚙️", text: "Admins managing user access and config" },
+          { icon: "📈", text: "Growth teams tracking signup funnels" },
+          { icon: "🔄", text: "CS ops monitoring platform adoption" },
         ]}
       />
       <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
