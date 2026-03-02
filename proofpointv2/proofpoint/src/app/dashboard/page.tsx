@@ -1,0 +1,160 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useUser } from "@clerk/nextjs";
+import { Nav, PageWrapper } from "@/components/Nav";
+import Link from "next/link";
+
+type ReportSummary = {
+  id: string;
+  company_name: string;
+  report_type: string;
+  industry: string | null;
+  mrr: number | null;
+  created_at: string;
+};
+
+const TOOLS = [
+  {
+    href: "/tools/generator",
+    icon: "📄",
+    label: "Report Generator",
+    desc: "AI-generated executive success reports from your customer data",
+    color: "#10b981",
+  },
+  {
+    href: "/tools/next-action",
+    icon: "⚡",
+    label: "Next Action",
+    desc: "AI-recommended CS plays based on health signals and renewal date",
+    color: "#6366f1",
+  },
+  {
+    href: "/tools/roi-calculator",
+    icon: "💰",
+    label: "CS ROI Report",
+    desc: "Turn raw metrics into an ROI narrative your CFO will love",
+    color: "#f59e0b",
+  },
+  {
+    href: "/tools/cs-roi",
+    icon: "📊",
+    label: "CS Program ROI",
+    desc: "Prove your CS program's business impact for budget conversations",
+    color: "#ec4899",
+  },
+];
+
+export default function DashboardPage() {
+  const { user } = useUser();
+  const [reports, setReports] = useState<ReportSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/reports")
+      .then((r) => r.json())
+      .then((data) => {
+        setReports(Array.isArray(data) ? data : []);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const formatDate = (iso: string) =>
+    new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+  const firstName = user?.firstName || "there";
+
+  return (
+    <>
+      <Nav />
+      <PageWrapper>
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "40px 24px" }}>
+
+          {/* Header */}
+          <div style={{ marginBottom: 40 }}>
+            <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 32, marginBottom: 8 }}>
+              Welcome back, {firstName}
+            </h1>
+            <p style={{ color: "#64748b", fontSize: 15 }}>
+              {reports.length} report{reports.length !== 1 ? "s" : ""} saved · Pick a tool to get started
+            </p>
+          </div>
+
+          {/* Tools grid */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 16, marginBottom: 48 }}>
+            {TOOLS.map(({ href, icon, label, desc, color }) => (
+              <Link key={href} href={href} style={{ textDecoration: "none" }}>
+                <div style={{
+                  background: "#0a1628", border: "1px solid #1e293b", borderRadius: 14,
+                  padding: 24, cursor: "pointer", transition: "border-color 0.2s",
+                  height: "100%",
+                }}
+                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = color)}
+                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#1e293b")}
+                >
+                  <div style={{ fontSize: 28, marginBottom: 12 }}>{icon}</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6, color: "#f1f5f9" }}>{label}</div>
+                  <div style={{ fontSize: 13, color: "#64748b", lineHeight: 1.5 }}>{desc}</div>
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          {/* Recent reports */}
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22 }}>Recent Reports</h2>
+            </div>
+
+            {loading ? (
+              <div style={{ color: "#475569", fontSize: 14, padding: "40px 0", textAlign: "center" }}>Loading…</div>
+            ) : reports.length === 0 ? (
+              <div style={{
+                background: "#0a1628", border: "1px dashed #1e293b",
+                borderRadius: 14, padding: 48, textAlign: "center",
+              }}>
+                <div style={{ fontSize: 36, marginBottom: 12 }}>📋</div>
+                <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No reports yet</div>
+                <div style={{ fontSize: 14, color: "#64748b", marginBottom: 20 }}>Generate your first report to see it saved here.</div>
+                <Link href="/tools/generator">
+                  <button style={{ background: "#10b981", color: "#fff", border: "none", padding: "10px 20px", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                    Create First Report →
+                  </button>
+                </Link>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {reports.map((r) => (
+                  <Link key={r.id} href={`/reports/${r.id}`} style={{ textDecoration: "none" }}>
+                    <div style={{
+                      background: "#0a1628", border: "1px solid #1e293b", borderRadius: 10,
+                      padding: "16px 20px", display: "flex", justifyContent: "space-between",
+                      alignItems: "center", cursor: "pointer", transition: "border-color 0.15s",
+                    }}
+                      onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#10b981")}
+                      onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#1e293b")}
+                    >
+                      <div>
+                        <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>{r.company_name}</div>
+                        <div style={{ fontSize: 12, color: "#475569" }}>
+                          {r.report_type} · {r.industry || "Unknown industry"}
+                          {r.mrr ? ` · $${r.mrr.toLocaleString()}/mo` : ""}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 12, color: "#475569", textAlign: "right" }}>
+                        {formatDate(r.created_at)}
+                        <div style={{ color: "#10b981", marginTop: 4 }}>View →</div>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+        </div>
+      </PageWrapper>
+    </>
+  );
+}
