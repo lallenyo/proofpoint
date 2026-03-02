@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { Nav, PageWrapper } from "@/components/Nav";
+import { SkeletonRow } from "@/components/Skeleton";
+import EmptyState from "@/components/EmptyState";
 import Link from "next/link";
 
 type ReportSummary = {
@@ -284,21 +286,19 @@ export default function DashboardPage() {
             </div>
 
             {loading ? (
-              <div style={{ color: "#475569", fontSize: 14, padding: "40px 0", textAlign: "center" }}>Loading…</div>
-            ) : reports.length === 0 ? (
-              <div style={{
-                background: "#0a1628", border: "1px dashed #1e293b",
-                borderRadius: 14, padding: 48, textAlign: "center",
-              }}>
-                <div style={{ fontSize: 36, marginBottom: 12 }}>📋</div>
-                <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No reports yet</div>
-                <div style={{ fontSize: 14, color: "#64748b", marginBottom: 20 }}>Generate your first report to see it saved here.</div>
-                <Link href="/tools/generator">
-                  <button style={{ background: "#10b981", color: "#fff", border: "none", padding: "10px 20px", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
-                    Create First Report →
-                  </button>
-                </Link>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <SkeletonRow />
+                <SkeletonRow />
+                <SkeletonRow />
               </div>
+            ) : reports.length === 0 ? (
+              <EmptyState
+                icon="📋"
+                title="No reports yet"
+                description="Generate your first AI report to see it saved here."
+                ctaLabel="Create First Report →"
+                ctaHref="/tools/generator"
+              />
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {reports.map((r) => (
