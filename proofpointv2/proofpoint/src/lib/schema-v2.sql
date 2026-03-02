@@ -412,7 +412,39 @@ CREATE POLICY "Service role full access on email_templates"
   ON email_templates FOR ALL
   USING (auth.role() = 'service_role');
 
--- ── 12. updated_at trigger ────────────────────────────────────────────────
+-- ── 12. alerts ─────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS alerts (
+  id              UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id         TEXT        NOT NULL,
+  account_id      UUID        REFERENCES client_accounts(id) ON DELETE CASCADE,
+  alert_type      TEXT        CHECK (alert_type IN ('health_drop', 'churn_risk', 'renewal_overdue', 'no_contact', 'score_critical')),
+  severity        TEXT        CHECK (severity IN ('critical', 'warning', 'info')),
+  title           TEXT        NOT NULL,
+  description     TEXT,
+  is_read         BOOLEAN     DEFAULT false,
+  is_dismissed    BOOLEAN     DEFAULT false,
+  metadata        JSONB       DEFAULT '{}',
+  created_at      TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_alerts_user_read ON alerts (user_id, is_read, is_dismissed);
+CREATE INDEX IF NOT EXISTS idx_alerts_account ON alerts (account_id);
+
+ALTER TABLE alerts ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own alerts"
+  ON alerts FOR SELECT
+  USING (user_id = auth.uid()::text);
+
+CREATE POLICY "Users can update own alerts"
+  ON alerts FOR UPDATE
+  USING (user_id = auth.uid()::text);
+
+CREATE POLICY "Service role full access on alerts"
+  ON alerts FOR ALL
+  USING (auth.role() = 'service_role');
+
+-- ── 13. updated_at trigger ────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN

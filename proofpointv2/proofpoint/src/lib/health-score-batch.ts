@@ -6,6 +6,7 @@
 import { getSupabaseAdmin } from "./supabase";
 import type { ClientAccount, AccountActivity } from "./supabase";
 import { calculateHealthScore } from "./health-score";
+import { runAlertChecks } from "./alerts";
 
 export interface BatchResult {
   total: number;
@@ -77,6 +78,10 @@ export async function recalculateAllHealthScores(userId: string): Promise<BatchR
             metadata: { previous_score: previousScore, new_score: score, factors },
           });
         }
+
+        // Run alert checks after recalculation
+        const updatedAccount = { ...account, health_score: score, health_trend: trend };
+        await runAlertChecks(userId, updatedAccount as ClientAccount, previousScore);
 
         result.updated++;
       } catch (err) {

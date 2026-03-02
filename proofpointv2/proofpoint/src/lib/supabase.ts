@@ -258,6 +258,26 @@ export type EmailTemplate = {
   created_at: string;
 };
 
+// ─── Alerts ─────────────────────────────────────────────────────────────────
+
+export type AlertType = "health_drop" | "churn_risk" | "renewal_overdue" | "no_contact" | "score_critical";
+export type AlertSeverity = "critical" | "warning" | "info";
+
+export type Alert = {
+  id: string;
+  user_id: string;
+  account_id: string | null;
+  alert_type: AlertType;
+  severity: AlertSeverity;
+  title: string;
+  description: string | null;
+  is_read: boolean;
+  is_dismissed: boolean;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  client_accounts?: { id: string; company_name: string } | null;
+};
+
 // ─── Lifecycle stage display helpers ─────────────────────────────────────────
 
 export const LIFECYCLE_COLORS: Record<LifecycleStage, string> = {

@@ -51,11 +51,28 @@ type TaskSummary = {
   thisWeek: number;
 };
 
+type DashboardAlert = {
+  id: string;
+  alert_type: string;
+  severity: string;
+  title: string;
+  is_read: boolean;
+  created_at: string;
+  client_accounts?: { id: string; company_name: string } | null;
+};
+
+const SEVERITY_COLORS: Record<string, string> = {
+  critical: "#ef4444",
+  warning: "#f59e0b",
+  info: "#3b82f6",
+};
+
 export default function DashboardPage() {
   const { user } = useUser();
   const [reports, setReports] = useState<ReportSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [taskSummary, setTaskSummary] = useState<TaskSummary>({ overdue: 0, dueToday: 0, thisWeek: 0 });
+  const [dashAlerts, setDashAlerts] = useState<DashboardAlert[]>([]);
 
   useEffect(() => {
     fetch("/api/reports")
@@ -89,6 +106,14 @@ export default function DashboardPage() {
           else if (t.due_date <= weekEndStr) thisWeek++;
         }
         setTaskSummary({ overdue, dueToday, thisWeek });
+      })
+      .catch(() => {});
+
+    // Fetch alerts for dashboard
+    fetch("/api/alerts?unread=true&limit=5")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) setDashAlerts(data);
       })
       .catch(() => {});
   }, []);
@@ -192,6 +217,58 @@ export default function DashboardPage() {
               </div>
             </div>
           </Link>
+
+          {/* Alerts section */}
+          {dashAlerts.length > 0 && (
+            <div style={{
+              background: "#0a1628",
+              border: "1px solid #1e293b",
+              borderRadius: 14,
+              padding: 24,
+              marginBottom: 48,
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: "#f1f5f9" }}>
+                  Alerts
+                </h2>
+                <span style={{ fontSize: 13, color: "#64748b" }}>
+                  {dashAlerts.length} unread
+                </span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {dashAlerts.map((alert) => (
+                  <div key={alert.id} style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "10px 12px",
+                    borderRadius: 8,
+                    background: "rgba(255,255,255,0.02)",
+                    border: `1px solid ${alert.severity === "critical" ? "rgba(239,68,68,0.2)" : "#1e293b"}`,
+                  }}>
+                    <span style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: SEVERITY_COLORS[alert.severity] || "#94a3b8",
+                      flexShrink: 0,
+                    }} />
+                    <span style={{ flex: 1, fontSize: 13, color: "#f1f5f9" }}>
+                      {alert.title}
+                    </span>
+                    {alert.client_accounts && (
+                      <Link
+                        href={`/accounts/${alert.client_accounts.id}`}
+                        style={{ fontSize: 12, color: "#10b981", textDecoration: "none", flexShrink: 0 }}
+                      >
+                        View →
+                      </Link>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Recent reports */}
           <div>
