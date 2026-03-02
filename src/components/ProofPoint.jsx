@@ -1,5 +1,11 @@
 "use client";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { TierProvider, useTier } from "./TierContext";
+import FeatureGate from "./FeatureGate";
+import UsageMeter from "./UsageMeter";
+import TrialBanner from "./TrialBanner";
+import BillingSettings from "./BillingSettings";
+import { PANEL_FEATURE_MAP } from "@/lib/tiers";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PROOFPOINT — Unified Customer Success Platform (Single-Frame App)
@@ -152,12 +158,13 @@ function renderMarkdown(text) {
   });
 }
 
-async function callClaude(system, userMessage, maxTokens = 1500) {
+async function callClaude(system, userMessage, maxTokens = 1500, { action_type = "general", tier = null } = {}) {
   // Routes through Next.js API endpoint — never expose API key client-side
+  // Server determines the model based on tier + action_type
   const response = await fetch("/api/anthropic", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: maxTokens, system, messages: [{ role: "user", content: userMessage }] }),
+    body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: maxTokens, system, messages: [{ role: "user", content: userMessage }], action_type, tier }),
   });
   const data = await response.json();
   return data.content?.map(b => b.text || "").join("") || "";
@@ -673,6 +680,7 @@ function CSVImportModal({ onClose, onImport }) {
 function AccountMenu({ onLogout }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const { tierConfig } = useTier();
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
     document.addEventListener("mousedown", handler);
@@ -684,7 +692,7 @@ function AccountMenu({ onLogout }) {
         <div style={{ width: 32, height: 32, borderRadius: 8, background: `rgba(${hexToRgb(T.green)},0.15)`, border: `1px solid ${T.green}33`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: T.green }}>SR</div>
         <div style={{ textAlign: "left", flex: 1, overflow: "hidden" }}>
           <div style={{ fontSize: 12.5, fontWeight: 600, color: T.text }}>Sarah R.</div>
-          <div style={{ fontSize: 11, color: "#334155" }}>Team Plan</div>
+          <div style={{ fontSize: 11, color: "#334155" }}>{tierConfig.name} Plan</div>
         </div>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
@@ -1538,6 +1546,7 @@ const NAV_ITEMS = [
   { id: "revenue", label: "Revenue", icon: (a) => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={a?T.green:"#475569"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> },
   { id: "anomaly-alerts", label: "Smart Alerts", icon: (a) => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={a?T.green:"#475569"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> },
   { id: "customer-360", label: "Customer 360", icon: (a) => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={a?T.green:"#475569"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> },
+  { id: "billing", label: "Billing", icon: (a) => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={a?T.green:"#475569"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> },
   { id: "admin", label: "Admin", icon: (a) => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={a?T.green:"#475569"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> },
 ];
 
@@ -1811,6 +1820,7 @@ function GeneratorPanel({ onSaveReport }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const { tierId, incrementActions } = useTier();
   const ind = BENCHMARKS[industry]; const fmt = FORMAT_PROMPTS[format];
   const handleChange = e => setForm(p => ({ ...p, [e.target.name]: e.target.value }));
 
@@ -1821,7 +1831,8 @@ function GeneratorPanel({ onSaveReport }) {
       const months = form.contractStart ? Math.floor((Date.now() - new Date(form.contractStart)) / (1000*60*60*24*30)) : "unknown";
       const benchCtx = buildBenchmarkContext(industry, form);
       const userPrompt = `${fmt.prompt}\n\n---\nCUSTOMER DATA:\nCompany: ${form.companyName}\nContact: ${form.contactName || "Not specified"}, ${form.contactTitle || ""}\nIndustry: ${ind.label}\nContract Start: ${form.contractStart} (${months} months)\nMRR: $${form.mrr}\nAdoption: ${form.adoptionRate}%\nSupport Tickets (90d): ${form.supportTickets}\n${form.nrr ? `NRR: ${form.nrr}%` : ""}\n${form.annualChurn ? `Churn: ${form.annualChurn}%` : ""}\n\nKey Metrics:\n${form.m1Label ? `• ${form.m1Label}: ${form.m1Value}` : ""}\n${form.m2Label ? `• ${form.m2Label}: ${form.m2Value}` : ""}\n${form.m3Label ? `• ${form.m3Label}: ${form.m3Value}` : ""}\n\nPrimary Goal: ${form.primaryGoal}\nContext: ${form.additionalContext || "None"}\n\n---\n${benchCtx}`;
-      const text = await callClaude(INDUSTRY_PROMPTS[industry], userPrompt);
+      const text = await callClaude(INDUSTRY_PROMPTS[industry], userPrompt, undefined, { action_type: "report_generation", tier: tierId });
+      incrementActions();
       setReport(text); setEditableReport(text); setStep(3);
     } catch { setError("Generation failed. Please try again."); }
     finally { setLoading(false); }
@@ -1922,6 +1933,7 @@ function NextActionPanel() {
   const [industry, setIndustry] = useState("saas");
   const [form, setForm] = useState({ companyName: "", contactName: "", contactTitle: "", mrr: "", renewalDate: "", championEngagement: "", recentChange: "", context: "", annualChurn: "", adoptionRate: "", supportTickets: "", nrr: "" });
   const [actions, setActions] = useState([]); const [loading, setLoading] = useState(false); const [error, setError] = useState(""); const [expanded, setExpanded] = useState(0); const [step, setStep] = useState(1);
+  const { tierId, incrementActions } = useTier();
   const ind = BENCHMARKS[industry]; const handleChange = e => setForm(p => ({ ...p, [e.target.name]: e.target.value }));
   const TIER_CONFIG = { strong: { label: "Top Quartile", color: T.green }, good: { label: "Above Average", color: T.info }, watch: { label: "Watch", color: T.warning }, risk: { label: "At Risk", color: T.error } };
   const URGENCY = { critical: { label: "Do This Week", color: T.error, icon: "⚡" }, soon: { label: "This Month", color: T.warning, icon: "◆" }, growth: { label: "Opportunity", color: T.green, icon: "▲" } };
@@ -1935,7 +1947,8 @@ function NextActionPanel() {
       const renewalDays = form.renewalDate ? Math.round((new Date(form.renewalDate) - Date.now()) / 86400000) : null;
       const signalLines = signals.map(s => `• ${s.label}: ${s.value}${s.unit} — ${TIER_CONFIG[s.tier].label} vs avg ${s.industry}${s.unit}`).join("\n");
       const prompt = `You are a senior CS strategist. Analyze this customer and generate exactly 4 next actions ranked by urgency.\n\nCUSTOMER:\nCompany: ${form.companyName}\nIndustry: ${ind.label}\nContact: ${form.contactName || "unknown"}, ${form.contactTitle || ""}\nRenewal: ${renewalDays !== null ? `${renewalDays} days` : "unknown"}\nMRR: $${form.mrr || "unknown"}\nChampion: ${form.championEngagement || "unknown"}\nRecent change: ${form.recentChange || "none"}\n\nSIGNALS:\n${signalLines}\n\nContext: ${form.context || "None"}\n\nReturn a JSON array of 4 objects with: urgency ("critical"|"soon"|"growth"), title (max 8 words), signal (1 sentence), talkingPoints (array of 2-3 phrases), outcome (1 sentence), deadline. Start with [ end with ]. No markdown.`;
-      const text = await callClaude("You are a senior Customer Success strategist. Return only valid JSON.", prompt);
+      const text = await callClaude("You are a senior Customer Success strategist. Return only valid JSON.", prompt, undefined, { action_type: "next_action", tier: tierId });
+      incrementActions();
       const parsed = JSON.parse(text.replace(/```json?/g, "").replace(/```/g, "").trim());
       setActions(parsed); setStep(2); setExpanded(0);
     } catch { setError("Failed to generate actions. Please try again."); }
@@ -2001,6 +2014,7 @@ function NextActionPanel() {
 function ROICalcPanel() {
   const [form, setForm] = useState({ teamSize: "", avgSalary: "85000", totalCustomers: "", avgArr: "", totalArr: "", expansionRevenue: "", grossRetention: "92", netRetention: "112", monthlyChurn: "1.2" });
   const [report, setReport] = useState(""); const [loading, setLoading] = useState(false); const [error, setError] = useState(""); const [step, setStep] = useState(1);
+  const { tierId, incrementActions } = useTier();
   const handleChange = e => setForm(p => ({ ...p, [e.target.name]: e.target.value }));
   const ts = parseFloat(form.teamSize) || 0; const sal = parseFloat(form.avgSalary) || 85000; const totalCust = parseFloat(form.totalCustomers) || 0; const expansion = parseFloat(form.expansionRevenue) || 0; const grr = parseFloat(form.grossRetention) || 92; const nrr = parseFloat(form.netRetention) || 112; const totalArr = parseFloat(form.totalArr) || 0;
   const teamCost = ts * sal; const revenueRetained = totalArr * (grr / 100); const roiMultiple = teamCost > 0 ? ((revenueRetained + expansion) / teamCost).toFixed(1) : "—"; const custPerCSM = ts > 0 ? Math.round(totalCust / ts) : "—"; const costPerDollar = teamCost > 0 && revenueRetained > 0 ? `$${(teamCost / revenueRetained).toFixed(2)}` : "—";
@@ -2011,7 +2025,8 @@ function ROICalcPanel() {
     setError(""); setLoading(true);
     try {
       const prompt = `Analyze this CS program:\n\nTeam: ${ts} CSMs, avg salary ${fmt(sal)}, total cost ${fmt(teamCost)}\nPortfolio: ${totalCust} customers, ${fmt(totalArr)} ARR\nRetention: ${grr}% GRR, ${nrr}% NRR\nExpansion: ${fmt(expansion)}\n\nCalculated: ROI ${roiMultiple}x, ${custPerCSM} customers/CSM, ${costPerDollar} cost per $1 retained\n\nGenerate a board-ready CS program ROI report with ## section headers.`;
-      const text = await callClaude(`You are a strategic CS advisor writing for VP/C-suite executives. Write a comprehensive CS program ROI report with sections: Executive Summary, Program ROI Analysis, Revenue Protection & Growth, Benchmarking, Investment Efficiency, Strategic Recommendations, Board-Level Narrative. Use ## markdown headers.`, prompt);
+      const text = await callClaude(`You are a strategic CS advisor writing for VP/C-suite executives. Write a comprehensive CS program ROI report with sections: Executive Summary, Program ROI Analysis, Revenue Protection & Growth, Benchmarking, Investment Efficiency, Strategic Recommendations, Board-Level Narrative. Use ## markdown headers.`, prompt, undefined, { action_type: "roi_report", tier: tierId });
+      incrementActions();
       setReport(text); setStep(2);
     } catch { setError("Generation failed."); }
     finally { setLoading(false); }
@@ -2307,6 +2322,7 @@ function HealthScorePanel({ accounts }) {
   const [alerts, setAlerts] = useState([]);
   const [showConfig, setShowConfig] = useState(false);
   const [showDemo, setShowDemo] = useState(false);
+  const { tierId, incrementActions } = useTier();
 
   const account = accounts.find(a => a.id === selectedAccount);
   const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
@@ -2373,7 +2389,8 @@ function HealthScorePanel({ accounts }) {
 
       const prompt = `Customer: ${account?.company || "Unknown"}. Composite health score: ${score}/100 (${healthTier(score).label}). ${prevScore !== null ? `Previous score: ${prevScore}. Score ${direction} by ${delta} points.` : "This is the first score calculation."} Component breakdown: ${signalBreakdown}. Alert threshold: ${alertThreshold}. ${score < alertThreshold ? "ALERT: Score is below threshold." : ""}\n\nWrite exactly 2 sentences explaining why this customer's health score is at ${score}. Be specific about which signals are driving it up or down. If the score changed, explain what caused the change. Use business language a CSM would use.`;
 
-      const text = await callClaude("You are a Customer Success analytics engine. Write concise, specific health score explanations in exactly 2 sentences. No hedging, no filler.", prompt, 200);
+      const text = await callClaude("You are a Customer Success analytics engine. Write concise, specific health score explanations in exactly 2 sentences. No hedging, no filler.", prompt, 200, { action_type: "health_score", tier: tierId });
+      incrementActions();
       setExplanation(text);
     } catch {
       setExplanation("Unable to generate explanation. Score calculated successfully.");
@@ -3627,6 +3644,7 @@ function MeetingIntelPanel({ accounts }) {
   const [uploadPlatform, setUploadPlatform] = useState("zoom");
   const [uploadAccount, setUploadAccount] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
+  const { tierId, incrementActions } = useTier();
 
   const meeting = meetings.find(m => m.id === selectedMeeting);
   const accountMap = {};
@@ -3668,7 +3686,8 @@ ${fullTranscript}
 
 Return ONLY the JSON, no markdown fences or explanation.`;
 
-      const text = await callClaude("You are a meeting intelligence AI. Return only valid JSON, no markdown.", prompt, 2000);
+      const text = await callClaude("You are a meeting intelligence AI. Return only valid JSON, no markdown.", prompt, 2000, { action_type: "meeting_analysis", tier: tierId });
+      incrementActions();
       const cleaned = text.replace(/```json|```/g, "").trim();
       const parsed = JSON.parse(cleaned);
 
@@ -4408,6 +4427,7 @@ function SurveyPanel({ accounts }) {
   const [analyzingAi, setAnalyzingAi] = useState(false);
   const [showSnippet, setShowSnippet] = useState(false);
   const [responseFilter, setResponseFilter] = useState("all"); // all | promoter | passive | detractor
+  const { tierId, incrementActions } = useTier();
 
   // NPS calculations
   const promoters = responses.filter(r => r.npsScore >= 9).length;
@@ -4443,7 +4463,8 @@ ${feedbackTexts}
 
 Return ONLY valid JSON.`;
 
-      const text = await callClaude("You are a survey analytics AI. Return only valid JSON, no markdown fences.", prompt, 1500);
+      const text = await callClaude("You are a survey analytics AI. Return only valid JSON, no markdown fences.", prompt, 1500, { action_type: "survey_analysis", tier: tierId });
+      incrementActions();
       const cleaned = text.replace(/```json|```/g, "").trim();
       setAiAnalysis(JSON.parse(cleaned));
     } catch {
@@ -5057,6 +5078,7 @@ function QBRDeckPanel({ accounts }) {
   const [editText, setEditText] = useState("");
   const [savedDecks, setSavedDecks] = useState([]);
   const [exportFormat, setExportFormat] = useState("both");
+  const { tierId, incrementActions } = useTier();
 
   const account = accounts.find(a => a.id === selectedAccount);
 
@@ -5101,7 +5123,8 @@ Return a JSON object with exactly these keys, each containing 2-4 paragraphs of 
 Write in third-person professional tone. Include specific numbers from the data. Each section should be 100-200 words. Return ONLY valid JSON, no markdown fences.`;
 
       setGenProgress(30);
-      const text = await callClaude("You are a QBR document generator for Customer Success teams. Return only valid JSON with polished executive content.", prompt, 4000);
+      const text = await callClaude("You are a QBR document generator for Customer Success teams. Return only valid JSON with polished executive content.", prompt, 4000, { action_type: "qbr_report", tier: tierId });
+      incrementActions();
       setGenProgress(80);
       const cleaned = text.replace(/```json|```/g, "").trim();
       const parsed = JSON.parse(cleaned);
@@ -6240,6 +6263,7 @@ function StakeholderPanel({ accounts }) {
   ]);
   const [analyzingAi, setAnalyzingAi] = useState(false);
   const [importText, setImportText] = useState("");
+  const { tierId, incrementActions } = useTier();
 
   const selected = contacts.find(c => c.id === selectedContact);
   const accountMap = {}; accounts.forEach(a => { accountMap[a.id] = a; });
@@ -6263,7 +6287,8 @@ Stakeholders:
 ${contactSummaries}
 
 Only suggest changes where evidence is strong. Return ONLY valid JSON array.`;
-      const text = await callClaude("You are a stakeholder intelligence AI. Return only valid JSON.", prompt, 1000);
+      const text = await callClaude("You are a stakeholder intelligence AI. Return only valid JSON.", prompt, 1000, { action_type: "stakeholder_analysis", tier: tierId });
+      incrementActions();
       const cleaned = text.replace(/```json|```/g, "").trim();
       const parsed = JSON.parse(cleaned);
       const newSugs = parsed.filter(s => s.from !== s.to).map((s, i) => ({ ...s, id: `sug-ai-${Date.now()}-${i}` }));
@@ -6650,6 +6675,7 @@ function OnboardingAIChat() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
+  const { tierId, incrementActions } = useTier();
 
   useEffect(() => { if (open && messagesEndRef.current) messagesEndRef.current.scrollIntoView({ behavior: "smooth" }); }, [messages, open]);
 
@@ -6661,8 +6687,9 @@ function OnboardingAIChat() {
     try {
       const reply = await callClaude(
         "You are a helpful onboarding assistant for ProofPoint, a Customer Success platform. Answer setup questions concisely. The platform has: CRM integration (HubSpot/Salesforce), CSV import with column mapping, health score configuration (Usage/Support/NPS/Engagement/Billing weights), playbook templates (Onboarding/Renewal/At-Risk/QBR), and team invitation with role-based access (Admin/CSM/Viewer). Keep answers under 100 words.",
-        userMsg, 400
+        userMsg, 400, { action_type: "onboarding_chat", tier: tierId }
       );
+      incrementActions();
       setMessages(prev => [...prev, { role: "assistant", text: reply }]);
     } catch {
       setMessages(prev => [...prev, { role: "assistant", text: "Sorry, I couldn't process that. Try asking about CRM setup, data import, health scores, or playbooks!" }]);
@@ -7242,6 +7269,7 @@ function EmailCenterPanel({ accounts }) {
   ]);
   const [showConfirm, setShowConfirm] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const { tierId, incrementActions } = useTier();
 
   const account = accounts.find(a => a.id === selectedAccount);
 
@@ -7265,7 +7293,8 @@ function EmailCenterPanel({ accounts }) {
     const system = `You are an expert Customer Success email writer. Write a ${tone.label.toLowerCase()} email using the "${tmpl.label}" template style. ${tone.desc}. Keep under 200 words. Be specific to the account context. No markdown — plain text paragraphs only. Sign off as the assigned CSM.`;
     const userMsg = `Template: ${tmpl.label} — ${tmpl.desc}\nTone: ${tone.label}\nAccount Context:\n${context}\n${customContext ? `Additional Context: ${customContext}` : ""}\n\nGenerate the email body only (no subject line). Be specific, reference real details from the account context.`;
     try {
-      const result = await callClaude(system, userMsg, 800);
+      const result = await callClaude(system, userMsg, 800, { action_type: "email_draft", tier: tierId });
+      incrementActions();
       const subj = tmpl.subject.replace("{quarter}", "Q1").replace("{period}", "30 Days").replace("{feature}", "Smart Alerts");
       setGeneratedEmail({ subject: subj, body: result });
       setEditedSubject(subj);
@@ -7467,6 +7496,7 @@ function TopNav({ onNavigate }) {
 
 function LandingPage({ onNavigate }) {
   const [hf, setHf] = useState(null);
+  const [isAnnual, setIsAnnual] = useState(false);
   return (
     <div style={{ fontFamily: "'DM Sans', sans-serif", color: T.text }}>
       <section style={{ padding: "100px 40px 80px", textAlign: "center", position: "relative", overflow: "hidden" }}>
@@ -7535,27 +7565,36 @@ function LandingPage({ onNavigate }) {
         </div>
       </section>
 
-      <section id="pricing" style={{ padding: "80px 40px", maxWidth: 800, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 50 }}>
+      <section id="pricing" style={{ padding: "80px 40px", maxWidth: 960, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 40 }}>
           <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 34, fontWeight: 700, marginBottom: 14 }}>Simple <span style={{ color: T.green }}>Pricing</span></h2>
-          <p style={{ fontSize: 15, color: T.muted }}>Start free. Upgrade when you're ready.</p>
+          <p style={{ fontSize: 15, color: T.muted, marginBottom: 20 }}>Start free. Upgrade when you're ready.</p>
+          <div style={{ display: "inline-flex", background: T.surface2, borderRadius: 8, border: `1px solid ${T.border}`, padding: 2 }}>
+            {[false, true].map(annual => (
+              <button key={annual ? "a" : "m"} onClick={() => setIsAnnual(annual)} style={{ background: isAnnual === annual ? T.green : "transparent", border: "none", borderRadius: 6, padding: "7px 18px", fontSize: 12.5, fontWeight: isAnnual === annual ? 600 : 400, color: isAnnual === annual ? "#fff" : T.muted, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>{annual ? "Annual (save 15%)" : "Monthly"}</button>
+            ))}
+          </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 18 }}>
           {[
-            { plan: "Solo", price: "$9", period: "/month", desc: "For individual CSMs", features: ["1 user", "Unlimited reports", "5 industry benchmarks", "Email drafting", "PDF export", "Next action intelligence"], cta: "Start Free Trial" },
-            { plan: "Team", price: "$29", period: "/month", desc: "For CS teams up to 5", features: ["Up to 5 users", "Everything in Solo", "Portfolio dashboard", "Playbook automation", "Meeting intelligence", "Custom widgets"], cta: "Start Free Trial", featured: true },
+            { plan: "Starter", price: isAnnual ? 33 : 39, desc: "For individual CSMs", seats: "1–5 seats", accounts: "100 accounts", ai: "500 actions/seat/mo", model: "Haiku (Fast)", features: ["Health scoring (basic)", "3 playbook templates", "3 email templates", "ROI calculator", "Report generator", "Activity timeline"], cta: "Start Free Trial" },
+            { plan: "Growth", price: isAnnual ? 67 : 79, desc: "For growing CS teams", seats: "5–15 seats", accounts: "300 accounts", ai: "1,000 actions/seat/mo", model: "Sonnet (Balanced)", features: ["Everything in Starter", "Meeting intelligence", "NPS/CSAT surveys", "QBR deck generation", "Churn prediction AI", "CRM integrations", "Team performance", "Revenue dashboard"], cta: "Start Free Trial", featured: true },
+            { plan: "Scale", price: isAnnual ? 99 : 119, desc: "For enterprise CS orgs", seats: "10–25+ seats", accounts: "Unlimited", ai: "2,000 actions/seat/mo", model: "Opus (Premium)", features: ["Everything in Growth", "AI agents", "Coaching analytics", "API access", "Dedicated CSM", "Custom integrations"], cta: "Start Free Trial" },
           ].map(p => (
-            <div key={p.plan} style={{ background: p.featured ? T.surface2 : T.surface, border: `1px solid ${p.featured ? T.green + "44" : T.border}`, borderRadius: 16, padding: "32px 28px", position: "relative" }}>
+            <div key={p.plan} style={{ background: p.featured ? T.surface2 : T.surface, border: `1px solid ${p.featured ? T.green + "44" : T.border}`, borderRadius: 16, padding: "28px 24px", position: "relative" }}>
               {p.featured && <div style={{ position: "absolute", top: -10, right: 20, padding: "4px 12px", borderRadius: 6, background: T.green, color: "#fff", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>Most Popular</div>}
               <div style={{ fontSize: 14, fontWeight: 600, color: T.green, marginBottom: 4 }}>{p.plan}</div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 4 }}><span style={{ fontFamily: "'Playfair Display', serif", fontSize: 42, fontWeight: 700, color: T.text }}>{p.price}</span><span style={{ fontSize: 14, color: T.muted }}>{p.period}</span></div>
-              <div style={{ fontSize: 13, color: T.muted, marginBottom: 20 }}>{p.desc}</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 24 }}>{p.features.map(f => <div key={f} style={{ fontSize: 13, color: T.subtle, display: "flex", alignItems: "center", gap: 8 }}><span style={{ color: T.green, fontSize: 14 }}>✓</span>{f}</div>)}</div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 2 }}><span style={{ fontFamily: "'Playfair Display', serif", fontSize: 40, fontWeight: 700, color: T.text }}>${p.price}</span><span style={{ fontSize: 13, color: T.muted }}>/seat/mo</span></div>
+              <div style={{ fontSize: 12.5, color: T.muted, marginBottom: 14 }}>{p.desc}</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 14, padding: "10px 0", borderTop: `1px solid ${T.border}22`, borderBottom: `1px solid ${T.border}22` }}>
+                {[{ l: "Seats", v: p.seats }, { l: "Accounts", v: p.accounts }, { l: "AI Actions", v: p.ai }, { l: "AI Model", v: p.model }].map(r => <div key={r.l} style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5 }}><span style={{ color: T.muted }}>{r.l}</span><span style={{ color: T.subtle, fontWeight: 500 }}>{r.v}</span></div>)}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 20 }}>{p.features.map(f => <div key={f} style={{ fontSize: 12.5, color: T.subtle, display: "flex", alignItems: "center", gap: 7 }}><span style={{ color: T.green, fontSize: 13 }}>✓</span>{f}</div>)}</div>
               <button onClick={() => onNavigate("signup")} style={{ width: "100%", padding: "12px 20px", borderRadius: 10, border: p.featured ? "none" : `1px solid ${T.border}`, background: p.featured ? T.green : "transparent", color: p.featured ? "#fff" : T.text, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>{p.cta}</button>
             </div>
           ))}
         </div>
-        <p style={{ textAlign: "center", fontSize: 12, color: "#334155", marginTop: 14 }}>30-day free trial on all plans · No credit card required</p>
+        <p style={{ textAlign: "center", fontSize: 12, color: "#334155", marginTop: 16 }}>All plans include a 30-day free trial with full Scale-tier access · No credit card required</p>
       </section>
 
       <section style={{ padding: "60px 40px", textAlign: "center", background: T.surface, borderTop: `1px solid ${T.border}` }}>
@@ -7583,7 +7622,7 @@ function SignupPage({ onNavigate, onAuth }) {
         <p style={{ fontSize: 15, color: T.muted, lineHeight: 1.7, marginBottom: 32 }}>Join Customer Success teams using AI-powered ROI reports to drive renewals and expansion.</p>
         <div style={{ background: `rgba(${hexToRgb(T.green)},0.06)`, border: `1px solid ${T.green}22`, borderRadius: 12, padding: "18px 20px" }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: T.greenLight, marginBottom: 8 }}>🎉 30-Day Free Trial</div>
-          <div style={{ fontSize: 12.5, color: T.muted, lineHeight: 1.6 }}>Full access to all 23 tools. No credit card required. Solo plan starts at $9/month after trial.</div>
+          <div style={{ fontSize: 12.5, color: T.muted, lineHeight: 1.6 }}>Full Scale-tier access to all 23 tools for 30 days. No credit card required. Plans start at $39/seat/month.</div>
         </div>
       </div>
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 40 }}>
@@ -7686,7 +7725,7 @@ function TermsPage({ onNavigate }) {
         { title: "1. Service Description", content: "Proofpoint provides AI-powered Customer Success tools including ROI report generation, industry benchmarking, next action intelligence, and email drafting. Reports are generated using AI and should be reviewed for accuracy before distribution." },
         { title: "2. Account Terms", content: "You must provide accurate information when creating an account. You are responsible for maintaining the security of your account credentials. One person or entity may not maintain more than one free trial." },
         { title: "3. Acceptable Use", content: "You agree to use Proofpoint only for lawful business purposes. You may not use the service to generate misleading ROI claims, falsify benchmark data, or misrepresent business metrics to customers or stakeholders." },
-        { title: "4. Subscription & Billing", content: "Solo plan: $9/month. Team plan: $29/month (up to 5 users). All plans include a 30-day free trial. You may cancel at any time. Refunds are not provided for partial billing periods." },
+        { title: "4. Subscription & Billing", content: "Starter plan: $39/seat/month. Growth plan: $79/seat/month. Scale plan: $119/seat/month. Annual billing available at 15% discount. All plans include a 30-day free trial with full Scale-tier access. You may cancel at any time. Refunds are not provided for partial billing periods." },
         { title: "5. Data Ownership", content: "You retain ownership of all data you input into Proofpoint. We do not share your data with third parties except as necessary to provide the service (e.g., AI processing, email delivery)." },
         { title: "6. AI-Generated Content", content: "Reports and recommendations generated by Proofpoint's AI are provided as business tools, not financial or legal advice. You are responsible for reviewing and verifying all AI-generated content before use." },
         { title: "7. Limitation of Liability", content: "Proofpoint is provided 'as is' without warranties. We are not liable for business decisions made based on AI-generated reports. Our total liability shall not exceed the amount you paid in the preceding 12 months." },
@@ -10203,8 +10242,8 @@ export default function App() {
   }, []);
 
   const sidebarW = sidebarCollapsed ? 64 : 220;
-  const PAGE_TITLES = { "custom-dash": "My Dashboard", dashboard: "Portfolio", "health-score": "Health Scores", playbooks: "Playbooks", meetings: "Meeting Intelligence", surveys: "NPS / CSAT Surveys", stakeholders: "Stakeholder Mapping", "qbr-deck": "QBR Deck Generator", "email-center": "Email Center", generator: "Report Generator", "next-action": "Next Actions", "roi-calc": "CS ROI Calculator", "crm-hub": "CRM Integration Hub", "churn-ai": "Churn Prediction AI", "success-plans": "Success Plans", "activity-timeline": "Activity Timeline", "renewal-pipeline": "Renewal & Expansion Pipeline", lifecycle: "Customer Lifecycle Tracker", "team-perf": "Team Performance", revenue: "Revenue Dashboard", "anomaly-alerts": "Smart Alerts", "customer-360": "Customer 360", admin: "Admin Dashboard" };
-  const PAGE_SUBTITLES = { "custom-dash": "Customizable widget dashboard with auto-refresh", dashboard: "Overview of your customer portfolio", "health-score": "AI-powered customer health scoring engine", playbooks: "Automated workflow engine for customer lifecycle", meetings: "AI-powered meeting analysis and action extraction", surveys: "Customer sentiment collection and analysis", stakeholders: "Visual relationship network with AI sentiment analysis", "qbr-deck": "AI-powered quarterly business review generation", "email-center": "AI-drafted emails with templates, tracking, and delivery", generator: "Create AI-powered ROI reports", "next-action": "AI-driven action recommendations", "roi-calc": "Justify your CS program investment", "crm-hub": "Deep bidirectional sync with HubSpot, Salesforce, and Stripe", "churn-ai": "AI-powered churn probability forecasting with confidence scores", "success-plans": "Goal tracking with milestones, owners, and progress visualization", "activity-timeline": "Multi-channel activity feed across all accounts and interactions", "renewal-pipeline": "Track renewals, expansion opportunities, and revenue forecasts", lifecycle: "Visual stage progression with milestone tracking and SLA management", "team-perf": "CSM leaderboards, coaching insights, and performance analytics", revenue: "MRR/ARR tracking, expansion revenue, and industry revenue breakdown", "anomaly-alerts": "Real-time anomaly detection with AI-powered smart alerts and actions", "customer-360": "Unified view of every account — health, revenue, engagement, and activity", admin: "Waitlist management, user analytics, and platform administration" };
+  const PAGE_TITLES = { "custom-dash": "My Dashboard", dashboard: "Portfolio", "health-score": "Health Scores", playbooks: "Playbooks", meetings: "Meeting Intelligence", surveys: "NPS / CSAT Surveys", stakeholders: "Stakeholder Mapping", "qbr-deck": "QBR Deck Generator", "email-center": "Email Center", generator: "Report Generator", "next-action": "Next Actions", "roi-calc": "CS ROI Calculator", "crm-hub": "CRM Integration Hub", "churn-ai": "Churn Prediction AI", "success-plans": "Success Plans", "activity-timeline": "Activity Timeline", "renewal-pipeline": "Renewal & Expansion Pipeline", lifecycle: "Customer Lifecycle Tracker", "team-perf": "Team Performance", revenue: "Revenue Dashboard", "anomaly-alerts": "Smart Alerts", "customer-360": "Customer 360", billing: "Billing & Plan", admin: "Admin Dashboard" };
+  const PAGE_SUBTITLES = { "custom-dash": "Customizable widget dashboard with auto-refresh", dashboard: "Overview of your customer portfolio", "health-score": "AI-powered customer health scoring engine", playbooks: "Automated workflow engine for customer lifecycle", meetings: "AI-powered meeting analysis and action extraction", surveys: "Customer sentiment collection and analysis", stakeholders: "Visual relationship network with AI sentiment analysis", "qbr-deck": "AI-powered quarterly business review generation", "email-center": "AI-drafted emails with templates, tracking, and delivery", generator: "Create AI-powered ROI reports", "next-action": "AI-driven action recommendations", "roi-calc": "Justify your CS program investment", "crm-hub": "Deep bidirectional sync with HubSpot, Salesforce, and Stripe", "churn-ai": "AI-powered churn probability forecasting with confidence scores", "success-plans": "Goal tracking with milestones, owners, and progress visualization", "activity-timeline": "Multi-channel activity feed across all accounts and interactions", "renewal-pipeline": "Track renewals, expansion opportunities, and revenue forecasts", lifecycle: "Visual stage progression with milestone tracking and SLA management", "team-perf": "CSM leaderboards, coaching insights, and performance analytics", revenue: "MRR/ARR tracking, expansion revenue, and industry revenue breakdown", "anomaly-alerts": "Real-time anomaly detection with AI-powered smart alerts and actions", "customer-360": "Unified view of every account — health, revenue, engagement, and activity", billing: "Manage your subscription, seats, and usage", admin: "Waitlist management, user analytics, and platform administration" };
 
   // ─── Public Page Navigation ──────────────
   const navigatePublic = useCallback((page) => {
@@ -10248,7 +10287,7 @@ export default function App() {
 
   // ─── Onboarding wizard ──────────────
   if (!onboardingComplete) {
-    return <OnboardingWizard onComplete={() => setOnboardingComplete(true)} />;
+    return <TierProvider><OnboardingWizard onComplete={() => setOnboardingComplete(true)} /></TierProvider>;
   }
 
   // ─── Logout screen ──────────────
@@ -10271,6 +10310,7 @@ export default function App() {
   }
 
   return (
+    <TierProvider>
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=DM+Sans:wght@400;500;600&display=swap');
@@ -10305,6 +10345,7 @@ export default function App() {
               </button>
             ); })}
           </nav>
+          {!sidebarCollapsed && <div style={{ padding: "0 12px" }}><UsageMeter onNavigate={navigate} /></div>}
           <div style={{ padding: sidebarCollapsed ? "14px 8px" : "14px 16px", borderTop: `1px solid ${T.border}` }}>
             {!sidebarCollapsed ? <AccountMenu onLogout={() => setLoggedOut(true)} /> : (
               <div style={{ display: "flex", justifyContent: "center" }}>
@@ -10326,32 +10367,35 @@ export default function App() {
             </div>
           </div>
           <div ref={contentRef} style={{ flex: 1, overflowY: "auto", padding: "24px 28px" }}>
-            {activePage === "custom-dash" && <CustomDashPanel accounts={accounts} />}
+            <TrialBanner onNavigate={navigate} />
+            {activePage === "custom-dash" && <FeatureGate feature={PANEL_FEATURE_MAP["custom-dash"]} panelName="My Dashboard" onNavigate={navigate}><CustomDashPanel accounts={accounts} /></FeatureGate>}
             {activePage === "dashboard" && <DashboardPanel navigate={navigate} savedReports={savedReports} accounts={accounts} onUpdateAccount={updateAccount} onImportAccounts={importAccounts} />}
-            {activePage === "health-score" && <HealthScorePanel accounts={accounts} />}
-            {activePage === "playbooks" && <PlaybookPanel accounts={accounts} />}
-            {activePage === "meetings" && <MeetingIntelPanel accounts={accounts} />}
-            {activePage === "surveys" && <SurveyPanel accounts={accounts} />}
-            {activePage === "stakeholders" && <StakeholderPanel accounts={accounts} />}
-            {activePage === "qbr-deck" && <QBRDeckPanel accounts={accounts} />}
-            {activePage === "email-center" && <EmailCenterPanel accounts={accounts} />}
-            {activePage === "generator" && <GeneratorPanel onSaveReport={saveReport} />}
-            {activePage === "next-action" && <NextActionPanel />}
-            {activePage === "roi-calc" && <ROICalcPanel />}
-            {activePage === "crm-hub" && <CRMIntegrationPanel accounts={accounts} />}
-            {activePage === "churn-ai" && <ChurnPredictionPanel accounts={accounts} />}
-            {activePage === "success-plans" && <SuccessPlansPanel accounts={accounts} navigate={navigate} />}
-            {activePage === "activity-timeline" && <ActivityTimelinePanel accounts={accounts} />}
-            {activePage === "renewal-pipeline" && <RenewalPipelinePanel accounts={accounts} />}
-            {activePage === "lifecycle" && <LifecycleTrackerPanel accounts={accounts} />}
-            {activePage === "team-perf" && <TeamPerformancePanel accounts={accounts} />}
-            {activePage === "revenue" && <RevenueDashboardPanel accounts={accounts} />}
-            {activePage === "anomaly-alerts" && <AnomalyAlertsPanel accounts={accounts} />}
-            {activePage === "customer-360" && <Customer360Panel accounts={accounts} />}
-            {activePage === "admin" && <AdminPanel />}
+            {activePage === "health-score" && <FeatureGate feature={PANEL_FEATURE_MAP["health-score"]} panelName="Health Scores" onNavigate={navigate}><HealthScorePanel accounts={accounts} /></FeatureGate>}
+            {activePage === "playbooks" && <FeatureGate feature={PANEL_FEATURE_MAP["playbooks"]} panelName="Playbooks" onNavigate={navigate}><PlaybookPanel accounts={accounts} /></FeatureGate>}
+            {activePage === "meetings" && <FeatureGate feature={PANEL_FEATURE_MAP["meetings"]} panelName="Meeting Intelligence" onNavigate={navigate}><MeetingIntelPanel accounts={accounts} /></FeatureGate>}
+            {activePage === "surveys" && <FeatureGate feature={PANEL_FEATURE_MAP["surveys"]} panelName="NPS/CSAT Surveys" onNavigate={navigate}><SurveyPanel accounts={accounts} /></FeatureGate>}
+            {activePage === "stakeholders" && <FeatureGate feature={PANEL_FEATURE_MAP["stakeholders"]} panelName="Stakeholder Mapping" onNavigate={navigate}><StakeholderPanel accounts={accounts} /></FeatureGate>}
+            {activePage === "qbr-deck" && <FeatureGate feature={PANEL_FEATURE_MAP["qbr-deck"]} panelName="QBR Deck Generator" onNavigate={navigate}><QBRDeckPanel accounts={accounts} /></FeatureGate>}
+            {activePage === "email-center" && <FeatureGate feature={PANEL_FEATURE_MAP["email-center"]} panelName="Email Center" onNavigate={navigate}><EmailCenterPanel accounts={accounts} /></FeatureGate>}
+            {activePage === "generator" && <FeatureGate feature={PANEL_FEATURE_MAP["generator"]} panelName="Report Generator" onNavigate={navigate}><GeneratorPanel onSaveReport={saveReport} /></FeatureGate>}
+            {activePage === "next-action" && <FeatureGate feature={PANEL_FEATURE_MAP["next-action"]} panelName="Next Actions" onNavigate={navigate}><NextActionPanel /></FeatureGate>}
+            {activePage === "roi-calc" && <FeatureGate feature={PANEL_FEATURE_MAP["roi-calc"]} panelName="CS ROI Calculator" onNavigate={navigate}><ROICalcPanel /></FeatureGate>}
+            {activePage === "crm-hub" && <FeatureGate feature={PANEL_FEATURE_MAP["crm-hub"]} panelName="CRM Integration Hub" onNavigate={navigate}><CRMIntegrationPanel accounts={accounts} /></FeatureGate>}
+            {activePage === "churn-ai" && <FeatureGate feature={PANEL_FEATURE_MAP["churn-ai"]} panelName="Churn Prediction" onNavigate={navigate}><ChurnPredictionPanel accounts={accounts} /></FeatureGate>}
+            {activePage === "success-plans" && <FeatureGate feature={PANEL_FEATURE_MAP["success-plans"]} panelName="Success Plans" onNavigate={navigate}><SuccessPlansPanel accounts={accounts} navigate={navigate} /></FeatureGate>}
+            {activePage === "activity-timeline" && <FeatureGate feature={PANEL_FEATURE_MAP["activity-timeline"]} panelName="Activity Timeline" onNavigate={navigate}><ActivityTimelinePanel accounts={accounts} /></FeatureGate>}
+            {activePage === "renewal-pipeline" && <FeatureGate feature={PANEL_FEATURE_MAP["renewal-pipeline"]} panelName="Renewal Pipeline" onNavigate={navigate}><RenewalPipelinePanel accounts={accounts} /></FeatureGate>}
+            {activePage === "lifecycle" && <FeatureGate feature={PANEL_FEATURE_MAP["lifecycle"]} panelName="Lifecycle Tracker" onNavigate={navigate}><LifecycleTrackerPanel accounts={accounts} /></FeatureGate>}
+            {activePage === "team-perf" && <FeatureGate feature={PANEL_FEATURE_MAP["team-perf"]} panelName="Team Performance" onNavigate={navigate}><TeamPerformancePanel accounts={accounts} /></FeatureGate>}
+            {activePage === "revenue" && <FeatureGate feature={PANEL_FEATURE_MAP["revenue"]} panelName="Revenue Dashboard" onNavigate={navigate}><RevenueDashboardPanel accounts={accounts} /></FeatureGate>}
+            {activePage === "anomaly-alerts" && <FeatureGate feature={PANEL_FEATURE_MAP["anomaly-alerts"]} panelName="Smart Alerts" onNavigate={navigate}><AnomalyAlertsPanel accounts={accounts} /></FeatureGate>}
+            {activePage === "customer-360" && <FeatureGate feature={PANEL_FEATURE_MAP["customer-360"]} panelName="Customer 360" onNavigate={navigate}><Customer360Panel accounts={accounts} /></FeatureGate>}
+            {activePage === "admin" && <FeatureGate feature={PANEL_FEATURE_MAP["admin"]} panelName="Admin Dashboard" onNavigate={navigate}><AdminPanel /></FeatureGate>}
+            {activePage === "billing" && <BillingSettings onNavigate={navigate} />}
           </div>
         </div>
       </div>
     </>
+    </TierProvider>
   );
 }
