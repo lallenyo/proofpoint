@@ -146,6 +146,38 @@ export type WaitlistEntry = {
   created_at: string;
 };
 
+// ─── Organizations ───────────────────────────────────────────────────────────
+
+export type PlanTier = "trial" | "starter" | "growth" | "scale";
+export type SubscriptionStatus = "trialing" | "active" | "past_due" | "canceled";
+
+export type Organization = {
+  id: string;
+  name: string | null;
+  owner_user_id: string;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  plan_tier: PlanTier;
+  seats_purchased: number;
+  billing_interval: "monthly" | "annual" | null;
+  subscription_status: SubscriptionStatus;
+  trial_ends_at: string | null;
+  current_period_end: string | null;
+  ai_actions_used: number;
+  ai_actions_limit: number;
+  onboarding_completed: boolean;
+  custom_fields: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+};
+
+export type OrgMember = {
+  org_id: string;
+  user_id: string;
+  role: "owner" | "admin" | "member";
+  joined_at: string;
+};
+
 // ─── Lifecycle stage display helpers ─────────────────────────────────────────
 
 export const LIFECYCLE_COLORS: Record<LifecycleStage, string> = {

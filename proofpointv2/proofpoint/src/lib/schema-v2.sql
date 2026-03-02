@@ -228,7 +228,60 @@ CREATE TABLE IF NOT EXISTS waitlist (
 
 CREATE INDEX IF NOT EXISTS idx_waitlist_email ON waitlist (email);
 
--- ── 6. updated_at trigger ────────────────────────────────────────────────
+-- ── 6. organizations ─────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS organizations (
+  id                    UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
+  name                  TEXT,
+  owner_user_id         TEXT        NOT NULL UNIQUE,
+  stripe_customer_id    TEXT,
+  stripe_subscription_id TEXT,
+  plan_tier             TEXT        DEFAULT 'trial' CHECK (plan_tier IN ('trial', 'starter', 'growth', 'scale')),
+  seats_purchased       INTEGER     DEFAULT 1,
+  billing_interval      TEXT        CHECK (billing_interval IN ('monthly', 'annual')),
+  subscription_status   TEXT        DEFAULT 'trialing' CHECK (subscription_status IN ('trialing', 'active', 'past_due', 'canceled')),
+  trial_ends_at         TIMESTAMPTZ DEFAULT (now() + interval '30 days'),
+  current_period_end    TIMESTAMPTZ,
+  ai_actions_used       INTEGER     DEFAULT 0,
+  ai_actions_limit      INTEGER     DEFAULT 500,
+  onboarding_completed  BOOLEAN     DEFAULT false,
+  custom_fields         JSONB       DEFAULT '{}',
+  created_at            TIMESTAMPTZ DEFAULT now(),
+  updated_at            TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_orgs_owner ON organizations (owner_user_id);
+CREATE INDEX IF NOT EXISTS idx_orgs_stripe_customer ON organizations (stripe_customer_id) WHERE stripe_customer_id IS NOT NULL;
+
+ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own org"
+  ON organizations FOR SELECT
+  USING (owner_user_id = auth.uid()::text);
+
+CREATE POLICY "Service role full access on organizations"
+  ON organizations FOR ALL
+  USING (auth.role() = 'service_role');
+
+-- ── 7. org_members ───────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS org_members (
+  org_id      UUID        NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  user_id     TEXT        NOT NULL,
+  role        TEXT        DEFAULT 'member' CHECK (role IN ('owner', 'admin', 'member')),
+  joined_at   TIMESTAMPTZ DEFAULT now(),
+  PRIMARY KEY (org_id, user_id)
+);
+
+ALTER TABLE org_members ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own memberships"
+  ON org_members FOR SELECT
+  USING (user_id = auth.uid()::text);
+
+CREATE POLICY "Service role full access on org_members"
+  ON org_members FOR ALL
+  USING (auth.role() = 'service_role');
+
+-- ── 8. updated_at trigger ────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -239,6 +292,11 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER set_updated_at_client_accounts
   BEFORE UPDATE ON client_accounts
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER set_updated_at_organizations
+  BEFORE UPDATE ON organizations
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
