@@ -326,7 +326,66 @@ CREATE POLICY "Service role full access on tasks"
   ON tasks FOR ALL
   USING (auth.role() = 'service_role');
 
--- ── 9. updated_at trigger ────────────────────────────────────────────────
+-- ── 9. playbook_templates ──────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS playbook_templates (
+  id              UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
+  org_id          TEXT        NOT NULL,
+  name            TEXT        NOT NULL,
+  description     TEXT,
+  trigger_type    TEXT        CHECK (trigger_type IN ('manual', 'lifecycle_change', 'health_drop', 'renewal_approaching', 'new_account')),
+  trigger_config  JSONB       DEFAULT '{}',
+  steps           JSONB       DEFAULT '[]',
+  is_system       BOOLEAN     DEFAULT false,
+  is_active       BOOLEAN     DEFAULT true,
+  created_at      TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_playbooks_org ON playbook_templates (org_id);
+
+ALTER TABLE playbook_templates ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view org playbooks"
+  ON playbook_templates FOR SELECT
+  USING (true);
+
+CREATE POLICY "Service role full access on playbooks"
+  ON playbook_templates FOR ALL
+  USING (auth.role() = 'service_role');
+
+-- ── 10. playbook_runs ─────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS playbook_runs (
+  id              UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
+  playbook_id     UUID        REFERENCES playbook_templates(id) ON DELETE CASCADE,
+  account_id      UUID        REFERENCES client_accounts(id) ON DELETE CASCADE,
+  user_id         TEXT        NOT NULL,
+  status          TEXT        DEFAULT 'active' CHECK (status IN ('active', 'completed', 'paused', 'canceled')),
+  current_step    INTEGER     DEFAULT 0,
+  started_at      TIMESTAMPTZ DEFAULT now(),
+  completed_at    TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_playbook_runs_user ON playbook_runs (user_id, status);
+CREATE INDEX IF NOT EXISTS idx_playbook_runs_account ON playbook_runs (account_id);
+
+ALTER TABLE playbook_runs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own playbook runs"
+  ON playbook_runs FOR SELECT
+  USING (user_id = auth.uid()::text);
+
+CREATE POLICY "Users can insert own playbook runs"
+  ON playbook_runs FOR INSERT
+  WITH CHECK (user_id = auth.uid()::text);
+
+CREATE POLICY "Users can update own playbook runs"
+  ON playbook_runs FOR UPDATE
+  USING (user_id = auth.uid()::text);
+
+CREATE POLICY "Service role full access on playbook_runs"
+  ON playbook_runs FOR ALL
+  USING (auth.role() = 'service_role');
+
+-- ── 11. updated_at trigger ────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN

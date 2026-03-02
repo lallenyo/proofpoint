@@ -202,6 +202,47 @@ export type TaskInsert = Omit<Task, "id" | "created_at" | "completed_at"> & {
   completed_at?: string;
 };
 
+// ─── Playbooks ──────────────────────────────────────────────────────────────
+
+export type PlaybookTriggerType = "manual" | "lifecycle_change" | "health_drop" | "renewal_approaching" | "new_account";
+
+export type PlaybookStep = {
+  day_offset: number;
+  action: "create_task" | "send_email" | "update_stage";
+  config: {
+    title?: string;
+    description?: string;
+    priority?: TaskPriority;
+    template_id?: string;
+  };
+};
+
+export type PlaybookTemplate = {
+  id: string;
+  org_id: string;
+  name: string;
+  description: string | null;
+  trigger_type: PlaybookTriggerType | null;
+  trigger_config: Record<string, unknown>;
+  steps: PlaybookStep[];
+  is_system: boolean;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type PlaybookRunStatus = "active" | "completed" | "paused" | "canceled";
+
+export type PlaybookRun = {
+  id: string;
+  playbook_id: string;
+  account_id: string;
+  user_id: string;
+  status: PlaybookRunStatus;
+  current_step: number;
+  started_at: string;
+  completed_at: string | null;
+};
+
 // ─── Lifecycle stage display helpers ─────────────────────────────────────────
 
 export const LIFECYCLE_COLORS: Record<LifecycleStage, string> = {
