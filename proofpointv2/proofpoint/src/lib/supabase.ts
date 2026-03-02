@@ -243,6 +243,21 @@ export type PlaybookRun = {
   completed_at: string | null;
 };
 
+// ─── Email Templates ────────────────────────────────────────────────────────
+
+export type EmailCategory = "check-in" | "qbr-invite" | "renewal" | "at-risk" | "expansion" | "onboarding" | "thank-you" | "escalation";
+
+export type EmailTemplate = {
+  id: string;
+  org_id: string | null;
+  name: string;
+  category: EmailCategory | null;
+  subject_template: string | null;
+  body_template: string | null;
+  is_system: boolean;
+  created_at: string;
+};
+
 // ─── Lifecycle stage display helpers ─────────────────────────────────────────
 
 export const LIFECYCLE_COLORS: Record<LifecycleStage, string> = {

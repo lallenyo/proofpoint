@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { href: "/accounts", label: "Portfolio" },
   { href: "/tasks", label: "Tasks" },
   { href: "/playbooks", label: "Playbooks" },
+  { href: "/emails", label: "Emails" },
   { href: "/tools/generator", label: "Report Generator" },
   { href: "/tools/next-action", label: "Next Action" },
   { href: "/tools/roi-calculator", label: "ROI Calculator" },

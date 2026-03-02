@@ -385,7 +385,34 @@ CREATE POLICY "Service role full access on playbook_runs"
   ON playbook_runs FOR ALL
   USING (auth.role() = 'service_role');
 
--- ── 11. updated_at trigger ────────────────────────────────────────────────
+-- ── 11. email_templates ────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS email_templates (
+  id              UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
+  org_id          TEXT,
+  name            TEXT        NOT NULL,
+  category        TEXT        CHECK (category IN (
+    'check-in', 'qbr-invite', 'renewal', 'at-risk',
+    'expansion', 'onboarding', 'thank-you', 'escalation'
+  )),
+  subject_template TEXT,
+  body_template   TEXT,
+  is_system       BOOLEAN     DEFAULT false,
+  created_at      TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_templates_org ON email_templates (org_id);
+
+ALTER TABLE email_templates ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can view email templates"
+  ON email_templates FOR SELECT
+  USING (true);
+
+CREATE POLICY "Service role full access on email_templates"
+  ON email_templates FOR ALL
+  USING (auth.role() = 'service_role');
+
+-- ── 12. updated_at trigger ────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
