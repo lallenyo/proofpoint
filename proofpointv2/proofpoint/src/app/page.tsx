@@ -14,10 +14,21 @@ export default function LandingPage() {
     e.preventDefault();
     if (!email || !email.includes("@")) return;
     setSubmitting(true);
-    // In production, POST to /api/waitlist → Supabase waitlist table
-    await new Promise((r) => setTimeout(r, 600));
-    setSubmitted(true);
-    setSubmitting(false);
+    try {
+      const res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, source: "landing-page" }),
+      });
+      if (!res.ok) throw new Error("Failed to join waitlist");
+      setSubmitted(true);
+    } catch (err) {
+      console.error("Waitlist error:", err);
+      // Still show success to avoid exposing backend issues to users
+      setSubmitted(true);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -157,11 +168,11 @@ export default function LandingPage() {
           <p style={{ fontSize: 12, fontWeight: 600, color: "#10b981", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>Pricing</p>
           <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(28px, 4vw, 42px)", marginBottom: 48 }}>Simple, honest pricing</h2>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 24, maxWidth: 880, margin: "0 auto" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 24, maxWidth: 960, margin: "0 auto" }}>
             {[
-              { name: "Starter", price: "$49", period: "/mo", desc: "For individual CSMs", features: ["25 reports / month", "PDF export", "3 industry templates", "Email support"], featured: false },
-              { name: "Team", price: "$199", period: "/mo", desc: "For CS teams at scale", features: ["Unlimited reports", "PDF + deck export", "All templates", "Custom branding", "Team workspace", "Priority support"], featured: true },
-              { name: "Enterprise", price: "Custom", period: "", desc: "For large CS orgs", features: ["Unlimited everything", "CRM integrations", "SSO & admin controls", "HIPAA compliance", "Dedicated CSM"], featured: false },
+              { name: "Starter", price: "$39", period: "/seat/mo", desc: "For individual CSMs", features: ["500 AI actions/month", "3 report templates", "HubSpot integration", "Email support"], featured: false },
+              { name: "Growth", price: "$79", period: "/seat/mo", desc: "For growing CS teams", features: ["1,000 AI actions/month", "All templates", "Custom branding", "Priority support", "Team workspace"], featured: true },
+              { name: "Scale", price: "$119", period: "/seat/mo", desc: "For CS organizations", features: ["2,000 AI actions/month", "Everything in Growth", "QBR generation", "Stakeholder mapping", "API access", "Dedicated CSM"], featured: false },
             ].map(({ name, price, period, desc, features, featured }) => (
               <div key={name} style={{
                 background: featured ? "rgba(16,185,129,0.05)" : "#040714",
@@ -183,16 +194,16 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                <SignUpButton mode="modal">
+                <Link href="/sign-up">
                   <button style={{
                     width: "100%", padding: "12px", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer",
                     background: featured ? "#10b981" : "transparent",
                     color: featured ? "#fff" : "#94a3b8",
                     border: featured ? "none" : "1px solid #1e293b",
                   }}>
-                    {name === "Enterprise" ? "Talk to Sales" : "Get Started"}
+                    Start Free Trial
                   </button>
-                </SignUpButton>
+                </Link>
               </div>
             ))}
           </div>
@@ -237,7 +248,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer style={{ borderTop: "1px solid #1e293b", padding: "24px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
         <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 16 }}>Proof<span style={{ color: "#10b981" }}>point</span></div>
-        <div style={{ fontSize: 13, color: "#475569" }}>© 2025 Proofpoint. All rights reserved.</div>
+        <div style={{ fontSize: 13, color: "#475569" }}>© 2026 Proofpoint. All rights reserved.</div>
         <div style={{ display: "flex", gap: 24 }}>
           {["Privacy", "Terms", "Contact"].map((l) => (
             <a key={l} href="#" style={{ color: "#475569", textDecoration: "none", fontSize: 13 }}>{l}</a>
