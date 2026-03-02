@@ -11,6 +11,8 @@ import type {
   HealthFactors,
   ActivityType,
   ContactRole,
+  Task,
+  TaskPriority,
 } from "@/lib/supabase";
 import { LIFECYCLE_COLORS, LIFECYCLE_LABELS } from "@/lib/supabase";
 import { Nav, PageWrapper } from "@/components/Nav";
@@ -229,6 +231,12 @@ export default function AccountDetailPage() {
   const [noteForm, setNoteForm] = useState({ title: "", description: "" });
   const [noteSaving, setNoteSaving] = useState(false);
 
+  // Tasks
+  const [tasks, setTasks] = useState<(Task & { client_accounts?: { id: string; company_name: string } | null })[]>([]);
+  const [showTaskForm, setShowTaskForm] = useState(false);
+  const [taskForm, setTaskForm] = useState({ title: "", due_date: "", priority: "medium" as TaskPriority, description: "" });
+  const [taskSaving, setTaskSaving] = useState(false);
+
   // ── Data fetching ──────────────────────────────────────────────────
   const fetchAccount = useCallback(async () => {
     try {
@@ -263,13 +271,24 @@ export default function AccountDetailPage() {
     }
   }, [id]);
 
+  const fetchTasks = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/tasks?account_id=${id}&status=pending,in_progress`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setTasks(Array.isArray(data) ? data : []);
+    } catch {
+      // Tasks failing shouldn't block the page
+    }
+  }, [id]);
+
   useEffect(() => {
     if (!id) return;
     setLoading(true);
-    Promise.all([fetchAccount(), fetchContacts(), fetchActivities()]).finally(() =>
+    Promise.all([fetchAccount(), fetchContacts(), fetchActivities(), fetchTasks()]).finally(() =>
       setLoading(false)
     );
-  }, [id, fetchAccount, fetchContacts, fetchActivities]);
+  }, [id, fetchAccount, fetchContacts, fetchActivities, fetchTasks]);
 
   // ── Edit account ───────────────────────────────────────────────────
   function startEditing() {
@@ -366,6 +385,36 @@ export default function AccountDetailPage() {
       alert(err instanceof Error ? err.message : "Failed to add note");
     } finally {
       setNoteSaving(false);
+    }
+  }
+
+  async function submitTask() {
+    if (!taskForm.title.trim()) return;
+    setTaskSaving(true);
+    try {
+      const res = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: taskForm.title.trim(),
+          description: taskForm.description || null,
+          priority: taskForm.priority,
+          due_date: taskForm.due_date || null,
+          account_id: id,
+          source: "manual",
+        }),
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to create task");
+      }
+      await fetchTasks();
+      setTaskForm({ title: "", due_date: "", priority: "medium", description: "" });
+      setShowTaskForm(false);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to create task");
+    } finally {
+      setTaskSaving(false);
     }
   }
 
@@ -1207,6 +1256,139 @@ export default function AccountDetailPage() {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* ─── Tasks Section ────────────────────────────────────── */}
+          <div style={{ ...S.card, marginBottom: 24 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <h2 style={S.sectionTitle}>Tasks</h2>
+              <button style={S.btn} onClick={() => setShowTaskForm(!showTaskForm)}>
+                {showTaskForm ? "Cancel" : "+ Add Task"}
+              </button>
+            </div>
+
+            {/* Quick-add task form */}
+            {showTaskForm && (
+              <div style={{ background: "#0f1d32", borderRadius: 10, padding: 16, marginBottom: 16, border: "1px solid #1e293b" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 120px 120px", gap: 10, marginBottom: 10 }}>
+                  <div>
+                    <label style={{ ...S.muted, display: "block", marginBottom: 4 }}>Title *</label>
+                    <input
+                      style={S.input}
+                      placeholder="Task title"
+                      value={taskForm.title}
+                      onChange={(e) => setTaskForm((f) => ({ ...f, title: e.target.value }))}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && taskForm.title.trim()) {
+                          e.preventDefault();
+                          submitTask();
+                        }
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ ...S.muted, display: "block", marginBottom: 4 }}>Due Date</label>
+                    <input
+                      style={S.input}
+                      type="date"
+                      value={taskForm.due_date}
+                      onChange={(e) => setTaskForm((f) => ({ ...f, due_date: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ ...S.muted, display: "block", marginBottom: 4 }}>Priority</label>
+                    <select
+                      style={S.select}
+                      value={taskForm.priority}
+                      onChange={(e) => setTaskForm((f) => ({ ...f, priority: e.target.value as TaskPriority }))}
+                    >
+                      <option value="urgent">Urgent</option>
+                      <option value="high">High</option>
+                      <option value="medium">Medium</option>
+                      <option value="low">Low</option>
+                    </select>
+                  </div>
+                </div>
+                <div style={{ marginBottom: 10 }}>
+                  <label style={{ ...S.muted, display: "block", marginBottom: 4 }}>Description</label>
+                  <textarea
+                    style={{ ...S.input, minHeight: 50, resize: "vertical" }}
+                    placeholder="Optional description..."
+                    value={taskForm.description}
+                    onChange={(e) => setTaskForm((f) => ({ ...f, description: e.target.value }))}
+                  />
+                </div>
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <button
+                    style={{ ...S.btn, opacity: taskSaving || !taskForm.title.trim() ? 0.5 : 1 }}
+                    onClick={submitTask}
+                    disabled={taskSaving || !taskForm.title.trim()}
+                  >
+                    {taskSaving ? "Saving..." : "Add Task"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Tasks list */}
+            {tasks.length === 0 ? (
+              <div style={{ padding: "32px 0", textAlign: "center", color: "#64748b", fontSize: 13 }}>
+                No open tasks for this account. Add one above.
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {tasks.map((t) => {
+                  const priorityColors: Record<string, string> = { urgent: "#ef4444", high: "#f59e0b", medium: "#3b82f6", low: "#94a3b8" };
+                  const isOverdue = t.due_date && t.due_date < new Date().toISOString().split("T")[0] && t.status !== "completed";
+                  return (
+                    <div
+                      key={t.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        padding: "10px 12px",
+                        borderRadius: 8,
+                        background: t.status === "completed" ? "rgba(16,185,129,0.04)" : "transparent",
+                        border: isOverdue ? "1px solid rgba(239,68,68,0.2)" : "1px solid transparent",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={t.status === "completed"}
+                        onChange={async () => {
+                          const newStatus = t.status === "completed" ? "pending" : "completed";
+                          try {
+                            await fetch(`/api/tasks/${t.id}`, {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ status: newStatus }),
+                            });
+                            fetchTasks();
+                          } catch { /* ignore */ }
+                        }}
+                        style={{ accentColor: "#10b981", cursor: "pointer" }}
+                      />
+                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: priorityColors[t.priority] || "#94a3b8", flexShrink: 0 }} />
+                      <span style={{ flex: 1, fontSize: 14, color: t.status === "completed" ? "#64748b" : "#f1f5f9", textDecoration: t.status === "completed" ? "line-through" : "none" }}>
+                        {t.title}
+                      </span>
+                      {t.due_date && (
+                        <span style={{ fontSize: 11, color: isOverdue ? "#ef4444" : "#64748b", flexShrink: 0 }}>
+                          {new Date(t.due_date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div style={{ marginTop: 12, textAlign: "center" }}>
+              <Link href={`/tasks?account=${id}`} style={{ fontSize: 13, color: "#10b981", textDecoration: "none" }}>
+                View all tasks for this account →
+              </Link>
             </div>
           </div>
 

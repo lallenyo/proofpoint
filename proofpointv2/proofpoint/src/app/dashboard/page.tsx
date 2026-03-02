@@ -45,10 +45,17 @@ const TOOLS = [
   },
 ];
 
+type TaskSummary = {
+  overdue: number;
+  dueToday: number;
+  thisWeek: number;
+};
+
 export default function DashboardPage() {
   const { user } = useUser();
   const [reports, setReports] = useState<ReportSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [taskSummary, setTaskSummary] = useState<TaskSummary>({ overdue: 0, dueToday: 0, thisWeek: 0 });
 
   useEffect(() => {
     fetch("/api/reports")
@@ -58,6 +65,32 @@ export default function DashboardPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
+
+    // Fetch task counts for My Tasks card
+    fetch("/api/tasks?status=pending,in_progress")
+      .then((r) => r.json())
+      .then((tasks) => {
+        if (!Array.isArray(tasks)) return;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayStr = today.toISOString().split("T")[0];
+        const weekEnd = new Date(today);
+        weekEnd.setDate(weekEnd.getDate() + 7);
+        const weekEndStr = weekEnd.toISOString().split("T")[0];
+
+        let overdue = 0;
+        let dueToday = 0;
+        let thisWeek = 0;
+
+        for (const t of tasks) {
+          if (!t.due_date) continue;
+          if (t.due_date < todayStr) overdue++;
+          else if (t.due_date === todayStr) dueToday++;
+          else if (t.due_date <= weekEndStr) thisWeek++;
+        }
+        setTaskSummary({ overdue, dueToday, thisWeek });
+      })
+      .catch(() => {});
   }, []);
 
   const formatDate = (iso: string) =>
@@ -100,6 +133,65 @@ export default function DashboardPage() {
               </Link>
             ))}
           </div>
+
+          {/* My Tasks card */}
+          <Link href="/tasks" style={{ textDecoration: "none" }}>
+            <div
+              style={{
+                background: "#0a1628",
+                border: "1px solid #1e293b",
+                borderRadius: 14,
+                padding: 24,
+                marginBottom: 48,
+                cursor: "pointer",
+                transition: "border-color 0.2s",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#10b981")}
+              onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#1e293b")}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: "#f1f5f9" }}>
+                  My Tasks
+                </h2>
+                <span style={{ fontSize: 13, color: "#10b981", fontWeight: 500 }}>View All →</span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+                <div style={{
+                  background: taskSummary.overdue > 0 ? "rgba(239,68,68,0.08)" : "rgba(255,255,255,0.02)",
+                  borderRadius: 10,
+                  padding: "16px 20px",
+                  border: `1px solid ${taskSummary.overdue > 0 ? "rgba(239,68,68,0.2)" : "#1e293b"}`,
+                }}>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: taskSummary.overdue > 0 ? "#ef4444" : "#64748b" }}>
+                    {taskSummary.overdue}
+                  </div>
+                  <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>Overdue</div>
+                </div>
+                <div style={{
+                  background: taskSummary.dueToday > 0 ? "rgba(245,158,11,0.08)" : "rgba(255,255,255,0.02)",
+                  borderRadius: 10,
+                  padding: "16px 20px",
+                  border: `1px solid ${taskSummary.dueToday > 0 ? "rgba(245,158,11,0.2)" : "#1e293b"}`,
+                }}>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: taskSummary.dueToday > 0 ? "#f59e0b" : "#64748b" }}>
+                    {taskSummary.dueToday}
+                  </div>
+                  <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>Due Today</div>
+                </div>
+                <div style={{
+                  background: "rgba(255,255,255,0.02)",
+                  borderRadius: 10,
+                  padding: "16px 20px",
+                  border: "1px solid #1e293b",
+                }}>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: "#3b82f6" }}>
+                    {taskSummary.thisWeek}
+                  </div>
+                  <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>This Week</div>
+                </div>
+              </div>
+            </div>
+          </Link>
 
           {/* Recent reports */}
           <div>

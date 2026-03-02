@@ -178,6 +178,30 @@ export type OrgMember = {
   joined_at: string;
 };
 
+// ─── Tasks ──────────────────────────────────────────────────────────────────
+
+export type TaskPriority = "urgent" | "high" | "medium" | "low";
+export type TaskStatus = "pending" | "in_progress" | "completed" | "skipped";
+export type TaskSource = "manual" | "playbook" | "ai-suggestion" | "health-alert";
+
+export type Task = {
+  id: string;
+  user_id: string;
+  account_id: string | null;
+  title: string;
+  description: string | null;
+  priority: TaskPriority;
+  status: TaskStatus;
+  due_date: string | null;
+  source: TaskSource;
+  completed_at: string | null;
+  created_at: string;
+};
+
+export type TaskInsert = Omit<Task, "id" | "created_at" | "completed_at"> & {
+  completed_at?: string;
+};
+
 // ─── Lifecycle stage display helpers ─────────────────────────────────────────
 
 export const LIFECYCLE_COLORS: Record<LifecycleStage, string> = {

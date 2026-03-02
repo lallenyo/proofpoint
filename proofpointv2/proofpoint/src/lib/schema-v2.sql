@@ -281,7 +281,52 @@ CREATE POLICY "Service role full access on org_members"
   ON org_members FOR ALL
   USING (auth.role() = 'service_role');
 
--- ── 8. updated_at trigger ────────────────────────────────────────────────
+-- ── 8. tasks ───────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS tasks (
+  id              UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id         TEXT        NOT NULL,
+  account_id      UUID        REFERENCES client_accounts(id) ON DELETE CASCADE,
+  title           TEXT        NOT NULL,
+  description     TEXT,
+  priority        TEXT        DEFAULT 'medium' CHECK (priority IN ('urgent', 'high', 'medium', 'low')),
+  status          TEXT        DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed', 'skipped')),
+  due_date        DATE,
+  source          TEXT        DEFAULT 'manual' CHECK (source IN ('manual', 'playbook', 'ai-suggestion', 'health-alert')),
+  completed_at    TIMESTAMPTZ,
+  created_at      TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_tasks_user_status_due
+  ON tasks (user_id, status, due_date);
+
+CREATE INDEX IF NOT EXISTS idx_tasks_account
+  ON tasks (account_id)
+  WHERE account_id IS NOT NULL;
+
+-- RLS
+ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own tasks"
+  ON tasks FOR SELECT
+  USING (user_id = auth.uid()::text);
+
+CREATE POLICY "Users can insert own tasks"
+  ON tasks FOR INSERT
+  WITH CHECK (user_id = auth.uid()::text);
+
+CREATE POLICY "Users can update own tasks"
+  ON tasks FOR UPDATE
+  USING (user_id = auth.uid()::text);
+
+CREATE POLICY "Users can delete own tasks"
+  ON tasks FOR DELETE
+  USING (user_id = auth.uid()::text);
+
+CREATE POLICY "Service role full access on tasks"
+  ON tasks FOR ALL
+  USING (auth.role() = 'service_role');
+
+-- ── 9. updated_at trigger ────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
