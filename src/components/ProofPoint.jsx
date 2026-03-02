@@ -677,7 +677,7 @@ function CSVImportModal({ onClose, onImport }) {
 }
 
 // ─── Account Menu ────────────────────────────────────────────────────────
-function AccountMenu({ onLogout }) {
+function AccountMenu({ onLogout, onNavigate }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const { tierConfig } = useTier();
@@ -702,11 +702,11 @@ function AccountMenu({ onLogout }) {
           background: T.surface2, border: `1px solid ${T.border}`, borderRadius: 12,
           padding: "4px", zIndex: 100, boxShadow: "0 -8px 30px rgba(0,0,0,0.4)",
         }}>
-          <button onClick={() => { setOpen(false); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", borderRadius: 8, border: "none", cursor: "pointer", background: "transparent", fontFamily: "'DM Sans', sans-serif", textAlign: "left" }}>
+          <button onClick={() => { setOpen(false); onNavigate && onNavigate("admin"); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", borderRadius: 8, border: "none", cursor: "pointer", background: "transparent", fontFamily: "'DM Sans', sans-serif", textAlign: "left" }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v1"/></svg>
             <span style={{ fontSize: 12.5, color: T.subtle }}>Account Settings</span>
           </button>
-          <button onClick={() => { setOpen(false); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", borderRadius: 8, border: "none", cursor: "pointer", background: "transparent", fontFamily: "'DM Sans', sans-serif", textAlign: "left" }}>
+          <button onClick={() => { setOpen(false); onNavigate && onNavigate("admin"); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", borderRadius: 8, border: "none", cursor: "pointer", background: "transparent", fontFamily: "'DM Sans', sans-serif", textAlign: "left" }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
             <span style={{ fontSize: 12.5, color: T.subtle }}>Preferences</span>
           </button>
@@ -840,7 +840,7 @@ function TimelineMetadataDisplay({ type, metadata }) {
           {metadata.attendees?.length > 0 && <div><div style={labelStyle}>Attendees</div><div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>{metadata.attendees.map((a, i) => <span key={i} style={chipStyle}>👤 {a}</span>)}</div></div>}
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             {metadata.duration_min && <span style={chipStyle}>⏱ {metadata.duration_min} min</span>}
-            {metadata.recording_url && <span style={{ ...chipStyle, color: T.info, cursor: "pointer" }}>🎬 Recording</span>}
+            {metadata.recording_url && <span onClick={() => window.open(metadata.recording_url, "_blank", "noopener")} style={{ ...chipStyle, color: T.info, cursor: "pointer" }}>🎬 Recording</span>}
           </div>
           {metadata.action_items?.length > 0 && <div><div style={labelStyle}>Action Items</div><div style={{ display: "flex", flexDirection: "column", gap: 3 }}>{metadata.action_items.map((item, i) => <div key={i} style={{ fontSize: 11.5, color: T.subtle, display: "flex", gap: 6 }}><span style={{ color: T.green }}>○</span> {item}</div>)}</div></div>}
         </div>
@@ -1408,7 +1408,7 @@ function PipelineForecastView({ opportunities }) {
   );
 }
 
-function PipelineDetailSidebar({ opp, onClose, onStageChange }) {
+function PipelineDetailSidebar({ opp, onClose, onStageChange, onNavigate }) {
   if (!opp) return null;
   const typeConfig = OPP_TYPES[opp.type] || OPP_TYPES.renewal;
   const stageConfig = PIPELINE_STAGE_MAP[opp.stage];
@@ -1437,7 +1437,7 @@ function PipelineDetailSidebar({ opp, onClose, onStageChange }) {
         {opp.aiSuggestedApproach && <div><div style={sectionTitle}>🎯 Suggested Approach</div><div style={{ background: `rgba(${hexToRgb(T.purple)},0.04)`, border: `1px solid ${T.purple}22`, borderRadius: 10, padding: "12px 14px", borderLeft: `3px solid ${T.purple}55` }}><p style={{ fontSize: 12, color: T.subtle, lineHeight: 1.6, margin: 0 }}>{opp.aiSuggestedApproach}</p></div></div>}
         {opp.signals?.length > 0 && <div><div style={sectionTitle}>Detection Signals</div><div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{opp.signals.map((s, i) => { const isRisk = s.includes("risk") || s.includes("drop") || s.includes("escalation") || s.includes("negative"); const isPositive = s.includes("growth") || s.includes("champion") || s.includes("high") || s.includes("expanding") || s.includes("positive") || s.includes("milestone"); const sigColor = isRisk ? T.error : isPositive ? T.green : T.info; return <span key={i} style={{ ...chipStyle, color: sigColor, background: `rgba(${hexToRgb(sigColor)},0.06)`, borderColor: `${sigColor}33` }}>{isRisk ? "⚠️" : isPositive ? "✓" : "📊"} {s.replace(/_/g, " ")}</span>; })}</div></div>}
         {opp.notes && <div><div style={sectionTitle}>Notes</div><p style={{ fontSize: 12, color: T.subtle, lineHeight: 1.6, margin: 0 }}>{opp.notes}</p></div>}
-        <div><div style={sectionTitle}>Quick Actions</div><div style={{ display: "flex", flexDirection: "column", gap: 6 }}>{[{ label: "Draft Renewal Email", icon: "✉️", color: T.purple }, { label: "Generate ROI Report", icon: "📊", color: T.green }, { label: "Schedule Meeting", icon: "📅", color: T.info }, { label: "View Account Timeline", icon: "📋", color: T.amber }].map((a, i) => <button key={i} style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${T.border}`, borderRadius: 8, padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", transition: "all 0.15s", fontSize: 12, color: T.text, textAlign: "left" }}><span>{a.icon}</span><span>{a.label}</span><span style={{ marginLeft: "auto", fontSize: 10, color: T.muted }}>→</span></button>)}</div></div>
+        <div><div style={sectionTitle}>Quick Actions</div><div style={{ display: "flex", flexDirection: "column", gap: 6 }}>{[{ label: "Draft Renewal Email", icon: "✉️", color: T.purple, target: "email-center" }, { label: "Generate ROI Report", icon: "📊", color: T.green, target: "generator" }, { label: "Schedule Meeting", icon: "📅", color: T.info, target: "meetings" }, { label: "View Account Timeline", icon: "📋", color: T.amber, target: "activity-timeline" }].map((a, i) => <button key={i} onClick={() => onNavigate && onNavigate(a.target)} style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${T.border}`, borderRadius: 8, padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", transition: "all 0.15s", fontSize: 12, color: T.text, textAlign: "left" }}><span>{a.icon}</span><span>{a.label}</span><span style={{ marginLeft: "auto", fontSize: 10, color: T.muted }}>→</span></button>)}</div></div>
       </div>
     </div>
   );
@@ -1457,7 +1457,7 @@ function PipelineFilterBar({ filters, onChange }) {
   );
 }
 
-function RenewalPipelinePanel({ accounts: externalAccounts }) {
+function RenewalPipelinePanel({ accounts: externalAccounts, onNavigate }) {
   const [opportunities, setOpportunities] = useState(() => generateDemoOpportunities());
   const [view, setView] = useState("kanban");
   const [selectedId, setSelectedId] = useState(null);
@@ -1516,7 +1516,7 @@ function RenewalPipelinePanel({ accounts: externalAccounts }) {
       {view === "kanban" && <PipelineKanbanBoard opportunities={filtered} onStageChange={handleStageChange} onSelect={setSelectedId} selectedId={selectedId} />}
       {view === "list" && <PipelineListView opportunities={filtered} onSelect={setSelectedId} selectedId={selectedId} onStageChange={handleStageChange} />}
       {view === "forecast" && <PipelineForecastView opportunities={filtered} />}
-      {selectedOpp && <><div onClick={() => setSelectedId(null)} style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(0,0,0,0.3)" }} /><PipelineDetailSidebar opp={selectedOpp} onClose={() => setSelectedId(null)} onStageChange={handleStageChange} /></>}
+      {selectedOpp && <><div onClick={() => setSelectedId(null)} style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(0,0,0,0.3)" }} /><PipelineDetailSidebar opp={selectedOpp} onClose={() => setSelectedId(null)} onStageChange={handleStageChange} onNavigate={onNavigate} /></>}
     </div>
   );
 }
@@ -10347,7 +10347,7 @@ export default function App() {
           </nav>
           {!sidebarCollapsed && <div style={{ padding: "0 12px" }}><UsageMeter onNavigate={navigate} /></div>}
           <div style={{ padding: sidebarCollapsed ? "14px 8px" : "14px 16px", borderTop: `1px solid ${T.border}` }}>
-            {!sidebarCollapsed ? <AccountMenu onLogout={() => setLoggedOut(true)} /> : (
+            {!sidebarCollapsed ? <AccountMenu onLogout={() => setLoggedOut(true)} onNavigate={navigate} /> : (
               <div style={{ display: "flex", justifyContent: "center" }}>
                 <button onClick={() => setSidebarCollapsed(false)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
                   <div style={{ width: 32, height: 32, borderRadius: 8, background: `rgba(${hexToRgb(T.green)},0.15)`, border: `1px solid ${T.green}33`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: T.green }}>SR</div>
@@ -10384,7 +10384,7 @@ export default function App() {
             {activePage === "churn-ai" && <FeatureGate feature={PANEL_FEATURE_MAP["churn-ai"]} panelName="Churn Prediction" onNavigate={navigate}><ChurnPredictionPanel accounts={accounts} /></FeatureGate>}
             {activePage === "success-plans" && <FeatureGate feature={PANEL_FEATURE_MAP["success-plans"]} panelName="Success Plans" onNavigate={navigate}><SuccessPlansPanel accounts={accounts} navigate={navigate} /></FeatureGate>}
             {activePage === "activity-timeline" && <FeatureGate feature={PANEL_FEATURE_MAP["activity-timeline"]} panelName="Activity Timeline" onNavigate={navigate}><ActivityTimelinePanel accounts={accounts} /></FeatureGate>}
-            {activePage === "renewal-pipeline" && <FeatureGate feature={PANEL_FEATURE_MAP["renewal-pipeline"]} panelName="Renewal Pipeline" onNavigate={navigate}><RenewalPipelinePanel accounts={accounts} /></FeatureGate>}
+            {activePage === "renewal-pipeline" && <FeatureGate feature={PANEL_FEATURE_MAP["renewal-pipeline"]} panelName="Renewal Pipeline" onNavigate={navigate}><RenewalPipelinePanel accounts={accounts} onNavigate={navigate} /></FeatureGate>}
             {activePage === "lifecycle" && <FeatureGate feature={PANEL_FEATURE_MAP["lifecycle"]} panelName="Lifecycle Tracker" onNavigate={navigate}><LifecycleTrackerPanel accounts={accounts} /></FeatureGate>}
             {activePage === "team-perf" && <FeatureGate feature={PANEL_FEATURE_MAP["team-perf"]} panelName="Team Performance" onNavigate={navigate}><TeamPerformancePanel accounts={accounts} /></FeatureGate>}
             {activePage === "revenue" && <FeatureGate feature={PANEL_FEATURE_MAP["revenue"]} panelName="Revenue Dashboard" onNavigate={navigate}><RevenueDashboardPanel accounts={accounts} /></FeatureGate>}
