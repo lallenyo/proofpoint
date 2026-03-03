@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
         body: new URLSearchParams({
           client_id: GOOGLE_CLIENT_ID,
           client_secret: GOOGLE_CLIENT_SECRET,
-          code,
+          code: code || "",
           redirect_uri: `${APP_URL}/api/email-integration/auth?provider=gmail`,
           grant_type: "authorization_code",
         }),
@@ -102,7 +102,7 @@ export async function GET(req: NextRequest) {
         body: new URLSearchParams({
           client_id: MICROSOFT_CLIENT_ID,
           client_secret: MICROSOFT_CLIENT_SECRET,
-          code,
+          code: code || "",
           redirect_uri: `${APP_URL}/api/email-integration/auth?provider=outlook`,
           grant_type: "authorization_code",
           scope: OUTLOOK_SCOPES,

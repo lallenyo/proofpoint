@@ -17,17 +17,18 @@ type AlertItem = {
 };
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/accounts", label: "Portfolio" },
-  { href: "/tasks", label: "Tasks" },
-  { href: "/playbooks", label: "Playbooks" },
-  { href: "/emails", label: "Emails" },
-  { href: "/renewals", label: "Renewals" },
-  { href: "/analytics", label: "Analytics" },
-  { href: "/tools/generator", label: "Report Generator" },
-  { href: "/tools/next-action", label: "Next Action" },
-  { href: "/tools/roi-calculator", label: "ROI Calculator" },
-  { href: "/tools/cs-roi", label: "CS Program ROI" },
+  { href: "/dashboard", label: "Dashboard", icon: "📊" },
+  { href: "/accounts", label: "Portfolio", icon: "🗂" },
+  { href: "/tasks", label: "Tasks", icon: "✅" },
+  { href: "/playbooks", label: "Playbooks", icon: "⚡" },
+  { href: "/emails", label: "Email Center", icon: "✉️" },
+  { href: "/renewals", label: "Pipeline", icon: "📋" },
+  { href: "/analytics", label: "Analytics", icon: "📈" },
+  { href: "/tools/generator", label: "Report Generator", icon: "✦" },
+  { href: "/tools/next-action", label: "Next Action", icon: "🎯" },
+  { href: "/tools/roi-calculator", label: "ROI Calculator", icon: "💰" },
+  { href: "/tools/cs-roi", label: "CS Program ROI", icon: "💵" },
+  { href: "/demo", label: "Sandbox", icon: "🧪" },
 ];
 
 const SEVERITY_COLORS: Record<string, string> = {
