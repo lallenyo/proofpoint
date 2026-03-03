@@ -15,10 +15,11 @@ export type Feature =
   | "email-templates"
   | "qbr-generation"
   | "stakeholder-mapping"
-  | "api-access";
+  | "api-access"
+  | "email-integration";
 
 export type ExportFormat = "markdown" | "pdf" | "pptx";
-export type Integration = "hubspot" | "salesforce";
+export type Integration = "hubspot" | "salesforce" | "gmail" | "outlook";
 
 export interface TierConfig {
   aiActionsPerSeat: number;
@@ -65,12 +66,12 @@ export const TIER_CONFIG: Record<string, TierConfig> = {
     features: [
       "generator", "next-action", "roi-calculator", "cs-roi",
       "portfolio", "health-scores", "accounts",
-      "playbooks-basic", "email-templates",
+      "playbooks-basic", "email-templates", "email-integration",
     ],
     aiModel: "claude-sonnet-4-20250514",
     maxTokens: 2000,
     reportTemplates: "all",
-    integrations: ["hubspot"],
+    integrations: ["hubspot", "gmail", "outlook"],
     exportFormats: ["markdown", "pdf"],
   },
   scale: {
@@ -80,12 +81,12 @@ export const TIER_CONFIG: Record<string, TierConfig> = {
       "generator", "next-action", "roi-calculator", "cs-roi",
       "portfolio", "health-scores", "accounts",
       "playbooks-basic", "playbooks-advanced", "email-templates",
-      "qbr-generation", "stakeholder-mapping", "api-access",
+      "qbr-generation", "stakeholder-mapping", "api-access", "email-integration",
     ],
     aiModel: "claude-sonnet-4-20250514",
     maxTokens: 4000,
     reportTemplates: "all",
-    integrations: ["hubspot", "salesforce"],
+    integrations: ["hubspot", "salesforce", "gmail", "outlook"],
     exportFormats: ["markdown", "pdf", "pptx"],
   },
 };
