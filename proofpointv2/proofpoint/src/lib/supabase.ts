@@ -300,9 +300,9 @@ export type Alert = {
 
 // ─── Support Tickets ────────────────────────────────────────────────────────
 
-export type TicketStatus = "open" | "pending" | "solved" | "closed";
-export type TicketPriority = "low" | "normal" | "high" | "urgent";
-export type TicketSource = "zendesk" | "intercom" | "manual";
+export type TicketStatus = "open" | "pending" | "in_progress" | "resolved" | "closed";
+export type TicketPriority = "urgent" | "high" | "medium" | "low";
+export type TicketSource = "zendesk" | "intercom" | "manual" | "email" | "chat";
 
 export type SupportTicket = {
   id: string;

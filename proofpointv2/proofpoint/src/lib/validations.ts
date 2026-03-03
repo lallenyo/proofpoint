@@ -120,15 +120,15 @@ export const createTicketSchema = z.object({
   description: z.string().max(10000).nullable().optional(),
   customer_name: z.string().max(200).nullable().optional(),
   customer_email: z.string().email("Invalid email").nullable().optional().or(z.literal("")),
-  priority: z.enum(["low", "normal", "high", "urgent"]).optional().default("normal"),
-  source: z.enum(["zendesk", "intercom", "manual"]).optional().default("manual"),
+  priority: z.enum(["urgent", "high", "medium", "low"]).optional().default("medium"),
+  source: z.enum(["zendesk", "intercom", "manual", "email", "chat"]).optional().default("manual"),
   account_id: z.string().uuid().nullable().optional(),
   tags: z.array(z.string().max(50)).optional().default([]),
 });
 
 export const updateTicketSchema = z.object({
-  status: z.enum(["open", "pending", "solved", "closed"]).optional(),
-  priority: z.enum(["low", "normal", "high", "urgent"]).optional(),
+  status: z.enum(["open", "pending", "in_progress", "resolved", "closed"]).optional(),
+  priority: z.enum(["urgent", "high", "medium", "low"]).optional(),
   assignee: z.string().max(200).nullable().optional(),
   internal_notes: z.string().max(10000).nullable().optional(),
   account_id: z.string().uuid().nullable().optional(),
