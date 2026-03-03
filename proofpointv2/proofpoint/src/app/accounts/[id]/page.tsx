@@ -16,6 +16,7 @@ import type {
 } from "@/lib/supabase";
 import { LIFECYCLE_COLORS, LIFECYCLE_LABELS } from "@/lib/supabase";
 import { Nav, PageWrapper } from "@/components/Nav";
+import EmailSync from "@/components/EmailSync";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -1061,6 +1062,11 @@ export default function AccountDetailPage() {
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* ── Email Sync ────────────────────────────────────────── */}
+            <div style={{ marginBottom: 24 }}>
+              <EmailSync accountId={id} />
             </div>
 
             {/* ── Activity Timeline ─────────────────────────────────── */}
