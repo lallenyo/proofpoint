@@ -16,10 +16,12 @@ export type Feature =
   | "qbr-generation"
   | "stakeholder-mapping"
   | "api-access"
-  | "email-integration";
+  | "email-integration"
+  | "support-tickets"
+  | "email-sending";
 
 export type ExportFormat = "markdown" | "pdf" | "pptx";
-export type Integration = "hubspot" | "salesforce" | "gmail" | "outlook";
+export type Integration = "hubspot" | "salesforce" | "gmail" | "outlook" | "zendesk" | "intercom" | "sendgrid";
 
 export interface TierConfig {
   aiActionsPerSeat: number;
@@ -40,11 +42,12 @@ export const TIER_CONFIG: Record<string, TierConfig> = {
       "generator", "next-action", "roi-calculator", "cs-roi",
       "portfolio", "health-scores", "accounts",
       "playbooks-basic", "email-templates", "qbr-generation", "stakeholder-mapping",
+      "support-tickets", "email-sending",
     ],
     aiModel: "claude-sonnet-4-20250514",
     maxTokens: 2000,
     reportTemplates: "all",
-    integrations: ["hubspot"],
+    integrations: ["hubspot", "zendesk", "intercom", "sendgrid"],
     exportFormats: ["markdown", "pdf"],
   },
   starter: {
@@ -67,11 +70,12 @@ export const TIER_CONFIG: Record<string, TierConfig> = {
       "generator", "next-action", "roi-calculator", "cs-roi",
       "portfolio", "health-scores", "accounts",
       "playbooks-basic", "email-templates", "email-integration",
+      "support-tickets", "email-sending",
     ],
     aiModel: "claude-sonnet-4-20250514",
     maxTokens: 2000,
     reportTemplates: "all",
-    integrations: ["hubspot", "gmail", "outlook"],
+    integrations: ["hubspot", "gmail", "outlook", "zendesk", "sendgrid"],
     exportFormats: ["markdown", "pdf"],
   },
   scale: {
@@ -82,11 +86,12 @@ export const TIER_CONFIG: Record<string, TierConfig> = {
       "portfolio", "health-scores", "accounts",
       "playbooks-basic", "playbooks-advanced", "email-templates",
       "qbr-generation", "stakeholder-mapping", "api-access", "email-integration",
+      "support-tickets", "email-sending",
     ],
     aiModel: "claude-sonnet-4-20250514",
     maxTokens: 4000,
     reportTemplates: "all",
-    integrations: ["hubspot", "salesforce", "gmail", "outlook"],
+    integrations: ["hubspot", "salesforce", "gmail", "outlook", "zendesk", "intercom", "sendgrid"],
     exportFormats: ["markdown", "pdf", "pptx"],
   },
 };

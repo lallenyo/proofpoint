@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Nav, PageWrapper } from "@/components/Nav";
+import { toast } from "sonner";
 
 // ── Theme tokens (matches global dark theme) ───────────────────────────────
 const T = {
@@ -285,8 +286,9 @@ Generate a board-ready CS program ROI report with ## section headers.`;
       const metricsHeader = `# CS Program ROI Report\n**Generated:** ${new Date().toLocaleDateString()}\n\n**Key Metrics:** ROI ${roiMultiple}x | Team Cost ${fmt(teamCost)} | Revenue Protected ${fmt(revenueRetained)} | Expansion ${fmt(expansion)} | GRR ${grr}% | NRR ${nrr}% | ${custPerCSM} Customers/CSM\n\n---\n\n`;
       await saveReport(form, metricsHeader + report, roiMultiple);
       setSaved(true);
+      toast.success("Report saved to your library");
     } catch {
-      setError("Failed to save report.");
+      toast.error("Failed to save report");
     } finally {
       setSaving(false);
     }
@@ -295,6 +297,7 @@ Generate a board-ready CS program ROI report with ## section headers.`;
   // ── Copy to clipboard ───────────────────────────────────────────────────
   const handleCopy = () => {
     navigator.clipboard.writeText(report);
+    toast.success("Report copied to clipboard");
   };
 
   // ── PDF export ──────────────────────────────────────────────────────────
@@ -604,6 +607,53 @@ Generate a board-ready CS program ROI report with ## section headers.`;
                         </div>
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {/* ── What-If Scenario ── */}
+                {teamCost > 0 && totalArr > 0 && (
+                  <div style={{
+                    background: `rgba(6,182,212,0.04)`,
+                    border: `1px solid ${T.info}22`,
+                    borderRadius: 12,
+                    padding: "16px 18px",
+                    marginBottom: 16,
+                  }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: T.info, textTransform: "uppercase", marginBottom: 10 }}>
+                      💡 What-If Scenarios
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+                      {[
+                        { label: "GRR +2%", delta: 2, metric: "grr" },
+                        { label: "GRR +5%", delta: 5, metric: "grr" },
+                        { label: "NRR +5%", delta: 5, metric: "nrr" },
+                      ].map((scenario) => {
+                        const newGrr = scenario.metric === "grr" ? grr + scenario.delta : grr;
+                        const newNrr = scenario.metric === "nrr" ? nrr + scenario.delta : nrr;
+                        const newRetained = totalArr * (newGrr / 100);
+                        const newExpansionImpact = totalArr * ((newNrr - newGrr) / 100);
+                        const newRoi = teamCost > 0 ? ((newRetained + (expansion || newExpansionImpact)) / teamCost).toFixed(1) : "—";
+                        const additionalRev = newRetained - revenueRetained;
+                        return (
+                          <div key={scenario.label} style={{
+                            background: T.bg,
+                            border: `1px solid ${T.border}`,
+                            borderRadius: 8,
+                            padding: "10px 12px",
+                          }}>
+                            <div style={{ fontSize: 11, color: T.info, fontWeight: 600, marginBottom: 4 }}>
+                              {scenario.label}
+                            </div>
+                            <div style={{ fontSize: 18, fontWeight: 700, color: T.text, fontFamily: "'Playfair Display', serif" }}>
+                              {newRoi}x ROI
+                            </div>
+                            <div style={{ fontSize: 11, color: T.green, marginTop: 2 }}>
+                              +{fmt(additionalRev)} retained
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
 

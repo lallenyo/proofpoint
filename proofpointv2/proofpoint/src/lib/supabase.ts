@@ -1,14 +1,34 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// ── Lazy-initialized Supabase clients (avoid build-time env errors) ──────────
 
-// Browser-safe client (respects row-level security)
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+let _supabase: SupabaseClient | null = null;
+
+function getSupabaseUrl(): string {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_SUPABASE_URL is not configured");
+  return url;
+}
+
+// Browser-safe client (respects row-level security) — lazy init
+export const supabase = new Proxy({} as SupabaseClient, {
+  get(_target, prop) {
+    if (!_supabase) {
+      const url = getSupabaseUrl();
+      const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      if (!key) throw new Error("NEXT_PUBLIC_SUPABASE_ANON_KEY is not configured");
+      _supabase = createClient(url, key);
+    }
+    return (_supabase as any)[prop];
+  },
+});
 
 // Server-only admin client (bypasses RLS — only use in API routes)
 export function getSupabaseAdmin() {
-  return createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+  const url = getSupabaseUrl();
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!key) throw new Error("SUPABASE_SERVICE_ROLE_KEY is not configured");
+  return createClient(url, key);
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -276,6 +296,66 @@ export type Alert = {
   metadata: Record<string, unknown>;
   created_at: string;
   client_accounts?: { id: string; company_name: string } | null;
+};
+
+// ─── Support Tickets ────────────────────────────────────────────────────────
+
+export type TicketStatus = "open" | "pending" | "solved" | "closed";
+export type TicketPriority = "low" | "normal" | "high" | "urgent";
+export type TicketSource = "zendesk" | "intercom" | "manual";
+
+export type SupportTicket = {
+  id: string;
+  user_id: string;
+  account_id: string | null;
+  external_id: string | null;
+  source: TicketSource;
+  subject: string;
+  description: string | null;
+  status: TicketStatus;
+  priority: TicketPriority;
+  customer_name: string | null;
+  customer_email: string | null;
+  assignee: string | null;
+  tags: string[];
+  conversation: TicketMessage[];
+  internal_notes: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+  client_accounts?: { id: string; company_name: string } | null;
+};
+
+export type TicketMessage = {
+  id: string;
+  author: string;
+  body: string;
+  is_internal: boolean;
+  created_at: string;
+};
+
+export type SupportTicketInsert = Omit<
+  SupportTicket,
+  "id" | "created_at" | "updated_at" | "client_accounts" | "conversation"
+> & {
+  conversation?: TicketMessage[];
+};
+
+// ─── Email Sends ────────────────────────────────────────────────────────────
+
+export type EmailSend = {
+  id: string;
+  user_id: string;
+  account_id: string | null;
+  to_email: string;
+  subject: string;
+  body_preview: string | null;
+  message_id: string | null;
+  template_id: string | null;
+  status: "sent" | "delivered" | "opened" | "clicked" | "bounced" | "failed";
+  opened_at: string | null;
+  clicked_at: string | null;
+  created_at: string;
 };
 
 // ─── Lifecycle stage display helpers ─────────────────────────────────────────

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Nav, PageWrapper } from "@/components/Nav";
 import { BENCHMARKS } from "@/lib/constants";
+import { toast } from "sonner";
 
 // ── Theme tokens ────────────────────────────────────────────────────────────
 const T = {
@@ -344,14 +345,18 @@ Generate a board-ready report with these ## sections:
       const header = `# CS Program ROI Analysis\n**Generated:** ${new Date().toLocaleDateString()}\n**Industry:** ${ind.label}\n\n**Key Metrics:** ROI ${roiMultiple}x | Program Cost ${fmt(totalProgramCost)} | Revenue Protected ${fmt(revenueRetained)} | Expansion ${fmt(expansion)} | ${headcount} Headcount | ${custPerCSM} Customers/CSM\n\n---\n\n`;
       await saveReport(form, header + report, calculatedMetrics);
       setSaved(true);
+      toast.success("Report saved to your library");
     } catch {
-      setError("Failed to save report.");
+      toast.error("Failed to save report");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleCopy = () => navigator.clipboard.writeText(report);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(report);
+    toast.success("Report copied to clipboard");
+  };
 
   const handlePdf = () => {
     const win = window.open("", "_blank");
@@ -521,6 +526,53 @@ Generate a board-ready report with these ## sections:
                       <StatCard label="Cost per $1" value={`$${costPerDollar}`} />
                     </div>
                   </>
+                )}
+
+                {/* ── 3-Year Projection ── */}
+                {totalProgramCost > 0 && totalArr > 0 && (
+                  <div style={{
+                    background: `rgba(6,182,212,0.04)`,
+                    border: `1px solid ${T.info}22`,
+                    borderRadius: 12,
+                    padding: "16px 18px",
+                    marginBottom: 16,
+                  }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: T.info, textTransform: "uppercase", marginBottom: 12 }}>
+                      📈 3-Year Revenue Projection
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+                      {[1, 2, 3].map((year) => {
+                        const compoundedArr = totalArr * Math.pow(nrr / 100, year);
+                        const cumulativeRetained = totalArr * (grr / 100) * year;
+                        const yearCost = totalProgramCost * (1 + 0.05 * (year - 1));
+                        const yearRoi = yearCost > 0 ? (compoundedArr / yearCost).toFixed(1) : "—";
+                        return (
+                          <div key={year} style={{
+                            background: T.bg,
+                            border: `1px solid ${T.border}`,
+                            borderRadius: 8,
+                            padding: "12px 14px",
+                          }}>
+                            <div style={{ fontSize: 11, color: T.info, fontWeight: 600, marginBottom: 6 }}>
+                              Year {year}
+                            </div>
+                            <div style={{ fontSize: 18, fontWeight: 700, color: T.text, fontFamily: "'Playfair Display', serif" }}>
+                              {fmt(compoundedArr)}
+                            </div>
+                            <div style={{ fontSize: 11, color: T.muted, marginTop: 4 }}>
+                              Projected ARR at {nrr}% NRR
+                            </div>
+                            <div style={{ fontSize: 12, color: T.green, fontWeight: 600, marginTop: 4 }}>
+                              {yearRoi}x ROI
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div style={{ fontSize: 11, color: T.muted, marginTop: 8, fontStyle: "italic" }}>
+                      Assumes {pct(nrr)} NRR compounds annually, 5% annual cost increase
+                    </div>
+                  </div>
                 )}
 
                 {error && <p style={{ fontSize: 13, color: T.error, marginTop: 10 }}>{error}</p>}

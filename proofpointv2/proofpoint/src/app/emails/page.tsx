@@ -175,6 +175,9 @@ export default function EmailsPage() {
 
   const [hovered, setHovered] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
 
   // Fetch templates on mount
   useEffect(() => {
@@ -244,6 +247,41 @@ export default function EmailsPage() {
   const copySubj = useCallback(() => copyText(editSubj, "Subject"), [editSubj, copyText]);
   const copyBody = useCallback(() => copyText(editBody, "Body"), [editBody, copyText]);
   const copyAll  = useCallback(() => copyText(`Subject: ${editSubj}\n\n${editBody}`, "Full email"), [editSubj, editBody, copyText]);
+
+  const handleSendEmail = useCallback(async () => {
+    if (!recipientEmail || !editSubj || !editBody) {
+      setToast("Please enter a recipient email address");
+      setTimeout(() => setToast(null), 2500);
+      return;
+    }
+    setSending(true);
+    try {
+      const res = await fetch("/api/emails/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: recipientEmail,
+          subject: editSubj,
+          body: editBody,
+          account_id: acctId || undefined,
+          template_id: selTpl?.id || undefined,
+          track: true,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.error || `Send failed (${res.status})`);
+      }
+      setSent(true);
+      setToast("Email sent successfully via SendGrid!");
+      setTimeout(() => setToast(null), 3000);
+    } catch (err: unknown) {
+      setToast(err instanceof Error ? err.message : "Failed to send email");
+      setTimeout(() => setToast(null), 3000);
+    } finally {
+      setSending(false);
+    }
+  }, [recipientEmail, editSubj, editBody, acctId, selTpl]);
 
   const spinCSS = <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>;
 
@@ -471,6 +509,51 @@ export default function EmailsPage() {
                     <textarea style={S.textarea} value={editBody}
                       onChange={(e) => setEditBody(e.target.value)}
                       onFocus={focusBorder} onBlur={blurBorder} />
+                  </div>
+
+                  {/* Send via SendGrid */}
+                  <div style={{
+                    background: "rgba(16,185,129,0.04)",
+                    border: "1px solid rgba(16,185,129,0.15)",
+                    borderRadius: 8,
+                    padding: "16px 18px",
+                    marginBottom: 16,
+                  }}>
+                    <label style={{ ...S.label, marginBottom: 8, color: "#10b981" }}>
+                      📧 Send via SendGrid
+                    </label>
+                    <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                      <input
+                        style={{ ...S.input, flex: 1 }}
+                        type="email"
+                        placeholder="recipient@company.com"
+                        value={recipientEmail}
+                        onChange={(e) => { setRecipientEmail(e.target.value); setSent(false); }}
+                        onFocus={focusBorder}
+                        onBlur={blurBorder}
+                      />
+                      <button
+                        style={{
+                          ...S.btn,
+                          padding: "10px 20px",
+                          opacity: recipientEmail && !sending ? 1 : 0.5,
+                          cursor: recipientEmail && !sending ? "pointer" : "not-allowed",
+                          background: sent ? "#059669" : "#10b981",
+                          whiteSpace: "nowrap",
+                        }}
+                        disabled={!recipientEmail || sending}
+                        onClick={handleSendEmail}
+                        onMouseEnter={(e) => { if (recipientEmail && !sending) e.currentTarget.style.background = "#059669"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = sent ? "#059669" : "#10b981"; }}
+                      >
+                        {sent ? "✓ Sent" : sending ? "Sending..." : "Send Email"}
+                      </button>
+                    </div>
+                    <p style={{ fontSize: 11, color: "#64748b", fontFamily: font, marginTop: 6, marginBottom: 0 }}>
+                      {sent
+                        ? "Email delivered successfully. Activity logged to account timeline."
+                        : "Sends the email directly via SendGrid with open/click tracking."}
+                    </p>
                   </div>
 
                   {/* Action buttons */}

@@ -39,6 +39,7 @@ const STEP_LABELS = [
   "Connect CRM",
   "Import Accounts",
   "Health Scores",
+  "Integrations",
 ];
 
 const ROLE_OPTIONS = [
@@ -306,11 +307,12 @@ export default function OnboardingPage() {
     if (step === 1) return true; // Can skip CRM
     if (step === 2) return true; // Can skip manual
     if (step === 3) return weightSum === 100;
+    if (step === 4) return true; // Integrations are optional
     return false;
   }
 
   function nextStep() {
-    if (step < 3) setStep(step + 1);
+    if (step < 4) setStep(step + 1);
   }
 
   function prevStep() {
@@ -1340,11 +1342,166 @@ export default function OnboardingPage() {
             Back
           </button>
           <button
-            onClick={completeSetup}
-            disabled={!isValid || completing}
-            style={isValid && !completing ? primaryBtnStyle : disabledBtnStyle}
+            onClick={nextStep}
+            disabled={!isValid}
+            style={isValid ? primaryBtnStyle : disabledBtnStyle}
           >
-            {completing ? "Setting up..." : "Complete Setup"}
+            Next →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Step 5: Integrations ────────────────────────────────────────────────
+
+  function renderStep5() {
+    const integrations = [
+      {
+        name: "Zendesk",
+        icon: "🎫",
+        desc: "Sync support tickets and customer sentiment data",
+        color: "#03363D",
+        connected: false,
+      },
+      {
+        name: "Intercom",
+        icon: "💬",
+        desc: "Import conversations and customer communication history",
+        color: "#286EFA",
+        connected: false,
+      },
+      {
+        name: "SendGrid",
+        icon: "📧",
+        desc: "Send emails directly from ProofPoint with tracking",
+        color: "#1A82E2",
+        connected: false,
+      },
+      {
+        name: "Salesforce",
+        icon: "☁️",
+        desc: "Bi-directional sync with Salesforce CRM",
+        color: "#00A1E0",
+        connected: false,
+      },
+    ];
+
+    return (
+      <div style={{ animation: "fadeIn 0.3s ease" }}>
+        <h2 style={{
+          fontFamily: fonts.heading,
+          fontSize: 24,
+          fontWeight: 700,
+          color: colors.text,
+          marginBottom: 8,
+          textAlign: "center",
+        }}>
+          Connect Integrations
+        </h2>
+        <p style={{
+          fontFamily: fonts.body,
+          fontSize: 15,
+          color: colors.textDim,
+          textAlign: "center",
+          marginBottom: 28,
+        }}>
+          Optional: Connect your tools for a complete CS workflow
+        </p>
+
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 14,
+          marginBottom: 24,
+        }}>
+          {integrations.map((int) => (
+            <div key={int.name} style={{
+              background: colors.card,
+              border: `1px solid ${colors.border}`,
+              borderRadius: 12,
+              padding: "20px 18px",
+              transition: "border-color 0.2s",
+              cursor: "pointer",
+            }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = colors.green; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.border; }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <span style={{ fontSize: 22 }}>{int.icon}</span>
+                <span style={{
+                  fontFamily: fonts.body,
+                  fontSize: 15,
+                  fontWeight: 700,
+                  color: colors.text,
+                }}>
+                  {int.name}
+                </span>
+              </div>
+              <p style={{
+                fontFamily: fonts.body,
+                fontSize: 12,
+                color: colors.textDim,
+                lineHeight: 1.5,
+                marginBottom: 14,
+                margin: 0,
+              }}>
+                {int.desc}
+              </p>
+              <button style={{
+                width: "100%",
+                padding: "8px 14px",
+                borderRadius: 8,
+                border: `1px solid ${colors.border}`,
+                background: "transparent",
+                color: colors.textMuted,
+                fontFamily: fonts.body,
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: "pointer",
+                transition: "all 0.15s",
+              }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = colors.green;
+                  e.currentTarget.style.color = colors.green;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = colors.border;
+                  e.currentTarget.style.color = colors.textMuted;
+                }}
+              >
+                Configure Later →
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <p style={{
+          fontFamily: fonts.body,
+          fontSize: 12,
+          color: colors.textDim,
+          textAlign: "center",
+          fontStyle: "italic",
+          marginBottom: 24,
+        }}>
+          You can always configure these later from Settings
+        </p>
+
+        <div style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          gap: 16,
+        }}>
+          <button onClick={prevStep} style={secondaryBtnStyle}>
+            Back
+          </button>
+          <button
+            onClick={completeSetup}
+            disabled={completing}
+            style={!completing ? primaryBtnStyle : disabledBtnStyle}
+          >
+            {completing ? "Setting up..." : "Complete Setup →"}
           </button>
         </div>
       </div>
@@ -1401,6 +1558,7 @@ export default function OnboardingPage() {
         {step === 1 && renderStep2()}
         {step === 2 && renderStep3()}
         {step === 3 && renderStep4()}
+        {step === 4 && renderStep5()}
       </div>
 
       {/* Slider thumb styles via global style tag */}

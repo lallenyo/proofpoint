@@ -28,6 +28,7 @@ const NAV_ITEMS = [
   { href: "/tools/next-action", label: "Next Action", icon: "🎯" },
   { href: "/tools/roi-calculator", label: "ROI Calculator", icon: "💰" },
   { href: "/tools/cs-roi", label: "CS Program ROI", icon: "💵" },
+  { href: "/support", label: "Support Tickets", icon: "🎫" },
   { href: "/demo", label: "Sandbox", icon: "🧪" },
 ];
 

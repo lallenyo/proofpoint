@@ -112,3 +112,42 @@ export const createPlaybookSchema = z.object({
 export const runPlaybookSchema = z.object({
   account_id: z.string().uuid(),
 });
+
+// ── Support Tickets ──────────────────────────────────────────────────────
+
+export const createTicketSchema = z.object({
+  subject: z.string().min(1, "Subject is required").max(500, "Subject too long"),
+  description: z.string().max(10000).nullable().optional(),
+  customer_name: z.string().max(200).nullable().optional(),
+  customer_email: z.string().email("Invalid email").nullable().optional().or(z.literal("")),
+  priority: z.enum(["low", "normal", "high", "urgent"]).optional().default("normal"),
+  source: z.enum(["zendesk", "intercom", "manual"]).optional().default("manual"),
+  account_id: z.string().uuid().nullable().optional(),
+  tags: z.array(z.string().max(50)).optional().default([]),
+});
+
+export const updateTicketSchema = z.object({
+  status: z.enum(["open", "pending", "solved", "closed"]).optional(),
+  priority: z.enum(["low", "normal", "high", "urgent"]).optional(),
+  assignee: z.string().max(200).nullable().optional(),
+  internal_notes: z.string().max(10000).nullable().optional(),
+  account_id: z.string().uuid().nullable().optional(),
+  tags: z.array(z.string().max(50)).optional(),
+});
+
+export const syncTicketsSchema = z.object({
+  source: z.enum(["zendesk", "intercom"]),
+  api_key: z.string().min(1, "API key is required"),
+  subdomain: z.string().max(100).optional(),
+});
+
+// ── Email Sending ────────────────────────────────────────────────────────
+
+export const sendEmailSchema = z.object({
+  to: z.string().email("Invalid recipient email"),
+  subject: z.string().min(1, "Subject is required").max(500),
+  body: z.string().min(1, "Body is required").max(50000),
+  account_id: z.string().uuid().nullable().optional(),
+  template_id: z.string().uuid().nullable().optional(),
+  track: z.boolean().optional().default(true),
+});
